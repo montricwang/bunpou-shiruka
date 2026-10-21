@@ -26,7 +26,7 @@ const document={
 const window={localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},matchMedia:()=>({matches:false}),addEventListener(){}};
 const ctx={document,window,console};
 vm.createContext(ctx);
-vm.runInContext(code+"\nglobalThis.test={kaku:()=>kaku,maiPath:()=>maiPath,maiTree,kakuModels,models,getLayout,surface,chooseVerb,chooseNegative,attach,fold,expandEnding,chooseMai,visible,edgeViews,mode:()=>mode};",ctx);
+vm.runInContext(code+"\nglobalThis.test={kaku:()=>kaku,maiPath:()=>maiPath,maiTree,kakuModels,models,getLayout,surface,chooseVerb,chooseAuxiliary,auxiliaryInflections,attach,fold,expandEnding,chooseMai,visible,edgeViews,mode:()=>mode};",ctx);
 const T=ctx.test,$=id=>document.getElementById(id);
 const find=(element,p)=>element.children.flatMap(x=>[...(p(x)?[x]:[]),...find(x,p)]);
 const groups=()=>find($("graph"),x=>x.tag==="g"&&x.attrs.class?.startsWith("unit "));
@@ -56,12 +56,17 @@ const endings=choices(groups()[0]);
 assert.equal(endings.filter(e=>e.attrs["aria-label"]?.endsWith(" · く")).length,2);
 assert.equal(endings.filter(e=>e.attrs["aria-label"]?.endsWith(" · け")).length,2);
 assert.equal(new Set(endings.map(e=>e.children.filter(c=>c.attrs.class==="choice-type")[0]?.textContent)).size,6);
-assert.ok(endings.every(e=>e.attrs.transform.includes(",")&&e.attrs.transform.match(/translate\(112,/)),
+assert.ok(endings.every(e=>e.attrs.transform.includes(",")&&e.attrs.transform.match(/translate\(82,/)),
   "候选在右侧同一竖列");
 assert.equal(findClass(groups()[0],"choice-guide").length,8);
 assert.equal(findClass(groups()[0],"suffix-frame").length,1);
 const expanded=T.getLayout().find(x=>x.id==="verb");
 assert.ok(expanded.suffixBox);
+assert.equal(expanded.suffixBox.width,172,"右侧内层虚线框已缩窄");
+assert.equal(expanded.choices[1].y-expanded.choices[0].y,47,"活用候选从 61 收紧为 47 单位行距");
+const firstChoice=findClass(group("五段动词"),"choice")[0];
+const typeLabel=findClass(firstChoice,"choice-type")[0], endingLabel=findClass(firstChoice,"choice-label")[0];
+assert.ok(Number(endingLabel.attrs.x)-Number(typeLabel.attrs.x)<95,"活用形名称贴近假名");
 assert.ok(expanded.suffixBox.x>expanded.atoms[0].x,"活用列在词干右侧");
 assert.ok(expanded.choices.every((x,i,list)=>i===0||(x.x===list[i-1].x&&x.y>list[i-1].y)),
   "八个词尾按照活用形纵向排列");
@@ -98,7 +103,12 @@ assert.equal(surface(),"書かない");
 assert.equal(groups().length,2);
 atom(group("否定助动词"),"い").click();
 assert.ok(group("否定助动词 · 活用"));
-assert.equal(findClass(group("否定助动词"),"choice").length,2);
+assert.equal(findClass(group("否定助动词"),"choice").length,6);
+assert.equal(findClass(group("否定助动词"),"suffix-frame").length,1);
+assert.equal(T.getLayout().find(u=>u.id==="auxiliary").choices.length,6);
+assert.ok(T.getLayout().find(u=>u.id==="auxiliary").choices.every(
+  (item,i,all)=>!i||(item.x===all[i-1].x&&item.y>all[i-1].y)
+));
 choice(group("否定助动词"),"かっ").click();
 assert.equal(surface(),"書かなかっ");
 assert.ok(group("否定助动词 · 连用形"));
@@ -186,6 +196,123 @@ assert.equal(T.kaku().formId,"renyou-onbin");
 assert.ok(group("过去助动词"));
 atom(group("过去助动词"),"た").click();
 assert.equal(surface(),"書いた");
+$("reset").click();
+// 助动词沿用同一「内部词尾候选 → 新接续单位」机制。
+const fromVerb=(text,form)=>{
+  $("reset").click();
+  atom(group("五段动词"),"く").click();
+  const picked=choice(group("五段动词"),text,form);
+  assert.ok(picked,"verb form "+form+" "+text);
+  picked.click();
+};
+const fromAux=(verbEnding,form,auxiliaryName,auxiliarySurface,ending)=>{
+  fromVerb(verbEnding,form);
+  atom(group(auxiliaryName),auxiliarySurface).click();
+  atom(group(auxiliaryName),ending).click();
+  assert.ok(group(auxiliaryName+" · 活用"));
+  const aux=T.getLayout().find(u=>u.id==="auxiliary");
+  assert.ok(aux.suffixBox,auxiliaryName+" must have its own dashed suffix group");
+  assert.ok(aux.choices.every((item,i,all)=>!i||(item.x===all[i-1].x&&item.y>all[i-1].y)));
+  assert.ok(aux.choices.every((item,i,all)=>!i||item.y-all[i-1].y<=48),
+    "auxiliary column uses compact spacing");
+};
+fromAux("か","未然形","否定助动词","ない","い");
+choice(group("否定助动词"),"けれ","假定形").click();
+assert.equal(surface(),"書かなけれ");
+atom(group("接续助词"),"ば").click();
+assert.equal(surface(),"書かなければ");
+
+fromAux("か","未然形","否定助动词","ない","い");
+choice(group("否定助动词"),"かろ","未然形").click();
+atom(group("推量助动词"),"う").click();
+assert.equal(surface(),"書かなかろう");
+
+fromAux("か","未然形","否定助动词","ない","い");
+choice(group("否定助动词"),"く","连用形").click();
+atom(group("接续助词"),"て").click();
+assert.equal(surface(),"書かなくて");
+
+fromAux("か","未然形","否定助动词","ない","い");
+choice(group("否定助动词"),"い","连体形").click();
+assert.equal(T.kaku().auxFormId,"nai-attributive");
+atom(group("比况助动词"),"ようだ").click();
+assert.equal(surface(),"書かないようだ");
+
+fromAux("き","连用形","礼貌助动词","ます","す");
+assert.equal(choices(group("礼貌助动词")).length,4);
+choice(group("礼貌助动词"),"し","连用形").click();
+assert.equal(surface(),"書きまし");
+atom(group("过去助动词"),"た").click();
+assert.equal(surface(),"書きました");
+
+fromAux("き","连用形","礼貌助动词","ます","す");
+choice(group("礼貌助动词"),"せ","未然形").click();
+atom(group("否定助动词"),"ん").click();
+assert.equal(surface(),"書きません");
+
+fromAux("き","连用形","礼貌助动词","ます","す");
+choice(group("礼貌助动词"),"しょ","未然形").click();
+atom(group("意向助动词"),"う").click();
+assert.equal(surface(),"書きましょう");
+
+fromAux("か","未然形","使役助动词","せる","る");
+assert.equal(choices(group("使役助动词")).length,6);
+choice(group("使役助动词"),"∅","未然形").click();
+assert.equal(surface(),"書かせ");
+atom(group("被动助动词"),"られる").click();
+assert.equal(surface(),"書かせられる");
+
+fromAux("か","未然形","使役助动词","せる","る");
+choice(group("使役助动词"),"∅","连用形").click();
+atom(group("礼貌助动词"),"ます").click();
+assert.equal(surface(),"書かせます");
+
+fromAux("か","未然形","使役助动词","せる","る");
+choice(group("使役助动词"),"れ","假定形").click();
+atom(group("接续助词"),"ば").click();
+assert.equal(surface(),"書かせれば");
+
+// 测试同形「せ」作为未然形与连用形时，后接选项不同。
+fromAux("か","未然形","使役助动词","せる","る");
+choice(group("使役助动词"),"∅","未然形").click();
+assert.ok(group("被动助动词"));
+assert.equal(group("礼貌助动词"),undefined);
+choice(group("使役助动词"),"∅","连用形").click();
+assert.ok(group("礼貌助动词"));
+assert.equal(group("被动助动词"),undefined);
+// 同形助动词活用的接续必须区分：终止形「ます」不等于未然形「ませ」。
+fromAux("き","连用形","礼貌助动词","ます","す");
+choice(group("礼貌助动词"),"す","终止形").click();
+assert.equal(T.kaku().auxFormId,"masu-terminal");
+assert.ok(group("否定推量助动词"));
+atom(group("否定推量助动词"),"まい").click();
+assert.equal(surface(),"書きますまい");
+
+// 改变已经接续的助动词形态，应撤回不再合法的后接单位。
+fromAux("き","连用形","礼貌助动词","ます","す");
+choice(group("礼貌助动词"),"し","连用形").click();
+atom(group("过去助动词"),"た").click();
+assert.equal(surface(),"書きました");
+choice(group("礼貌助动词"),"せ","未然形").click();
+assert.equal(surface(),"書きませ");
+assert.equal(T.kaku().tail,null);
+assert.ok(group("否定助动词"));
+
+// 「ない」终止形与连体形同为「い」，接续不同。
+fromAux("か","未然形","否定助动词","ない","い");
+choice(group("否定助动词"),"い","终止形").click();
+assert.ok(group("推定助动词"));
+assert.equal(group("比况助动词"),undefined);
+
+// 归并关闭后，选择的活用形及接续关系保持不变。
+fromAux("か","未然形","否定助动词","ない","い");
+choice(group("否定助动词"),"かっ","连用形").click();
+const foldAux=findClass(group("否定助动词"),"chrome-hit")[1];
+assert.ok(foldAux);foldAux.click();
+assert.equal(findClass(group("否定助动词"),"choice").length,0);
+assert.ok(group("过去助动词"));
+findClass(group("否定助动词"),"chrome-hit")[1].click();
+assert.equal(T.kaku().auxFormId,"nai-renyou-katt");
 $("reset").click();
 $("theme-toggle").click();
 assert.equal(document.documentElement.dataset.theme,"dark");
