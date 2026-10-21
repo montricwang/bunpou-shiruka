@@ -66,6 +66,31 @@
     .trail button.current { border-color: #cda396; background: var(--accent-bg); color: var(--accent); }
     .footnote { color: var(--muted); font-size: 12px; line-height: 1.8; margin-top: 24px; }
     .footnote a { color: var(--accent); }
+
+    .startbar { border: 1px solid var(--line); padding: 19px 22px 20px; border-radius: 14px; background: var(--paper); }
+    .startbar-top { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+    .start-options { display: flex; flex-wrap: wrap; gap: 9px; }
+    .start-option { border: 1px solid var(--line); border-radius: 9px; padding: 10px 16px; background: #f9faf6; color: var(--ink); font-weight: 600; font-size: 16px; }
+    .start-option:hover, .start-option.active { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+    .summary { margin-top: 32px; }
+    .unit { transition: border-color .12s ease; cursor: pointer; }
+    .unit.is-selected { border-color: #be8c7a; box-shadow: 0 0 0 2px rgba(172, 73, 52, .08); }
+    .unit-name { display: flex; align-items: center; gap: 8px; border: 0; background: transparent; text-align: left; padding: 1px 0 5px; cursor: pointer; font-family: inherit; }
+    .unit-name:hover { color: var(--accent); }
+    .unit-name::after { content: "↗"; opacity: .65; color: var(--accent); }
+    .choice-wrap.backward { border-left: 0; padding-left: 0; margin-left: 0; border-right: 1px dashed #bdc3bf; padding-right: 16px; margin-right: 8px; }
+    .connector.backward { transform: rotate(180deg); }
+    .gram-title, #grammar-title { font-size: 22px; margin: 15px 0 10px; }
+    .tabs { display: flex; gap: 6px; margin: 21px 0 15px; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+    .tabs button { border: 0; background: none; color: var(--muted); padding: 7px 14px; border-radius: 7px; }
+    .tabs button[aria-selected="true"] { background: var(--accent-bg); color: var(--accent); font-weight: 650; }
+    .grammar-body { min-height: 120px; }
+    .grammar-row { display: flex; gap: 10px; padding: 10px 1px; border-bottom: 1px solid #eeefea; font-size: 13px; align-items: baseline; }
+    .grammar-row dt { width: 72px; flex: 0 0 72px; color: var(--muted); }
+    .grammar-row dd { margin: 0; flex: 1; color: var(--ink); line-height: 1.65; }
+    .grammar-source { font-size: 11px !important; margin-top: 15px !important; }
+    .panel h3 { color: var(--muted); font-size: 12px; margin: 28px 0 11px; }
+    .hint { margin-top: 8px; color: var(--muted); font-size: 11px; }
     @media (max-width: 700px) {
       .wrap { padding: 25px 16px 55px; }
       .intro { margin: 42px 0 16px; }
@@ -80,11 +105,15 @@
 </head>
 <body>
   <main class="wrap">
-    <header class="topline"><div class="brand">文法？知るか！</div><span class="tag">形态链实验 · 001</span></header>
+    <header class="topline"><div class="brand">文法？知るか！</div><span class="tag">形态链实验 · 002</span></header>
     <section class="intro">
       <div class="kicker">MORPHOLOGY PLAYGROUND</div>
-      <h1>从一个「く」出发。</h1>
-      <p>将词干、活用词尾与后接成分拆成节点。点击红色实节点，选择半透明的候选，沿着接续关系一步步构造日语表达。</p>
+      <h1>把语法拆开，再接下去。</h1>
+      <p>既可以从动词、形容词、形容动词出发，也可以从「まい」向前查看接续条件。点击半透明候选后，下一层会自动展开。</p>
+    </section>
+    <section class="startbar" aria-label="选择探索起点">
+      <div class="startbar-top"><span class="label">选择探索起点</span><span class="label">点击整个语法单位的标题，可以查看活用及前后接续</span></div>
+      <div class="start-options" id="starters"></div>
     </section>
     <section class="summary" aria-label="当前表达">
       <div><div class="label">当前组成的完整形态 <span id="step-count"></span></div><output id="form" aria-live="polite">書く</output></div>
@@ -98,30 +127,40 @@
       <div class="chain" id="chain"></div>
     </section>
     <section class="details">
-      <div class="panel">
-        <h2>当前语法关系</h2>
-        <div id="rule-change">辞書形</div>
-        <p id="explanation"></p>
+      <div class="panel grammar-panel" aria-label="语法单位详情">
+        <span class="label">GRAMMAR INSPECTOR · 语法单位</span>
+        <h2 id="grammar-title">五段动词</h2>
+        <p id="grammar-summary"></p>
+        <div class="tabs" role="tablist" aria-label="语法信息">
+          <button type="button" data-tab="forms" role="tab">活用</button>
+          <button type="button" data-tab="before" role="tab">前接</button>
+          <button type="button" data-tab="after" role="tab">后接</button>
+        </div>
+        <div id="grammar-body" class="grammar-body"></div>
+        <p id="grammar-source" class="grammar-source"></p>
       </div>
       <div class="panel">
-        <h2>已走过的变化</h2>
+        <h2>当前形态变化</h2>
+        <div id="rule-change">辞書形</div>
+        <p id="explanation"></p>
+        <h3>探索历史</h3>
         <div class="trail" id="trail"></div>
       </div>
     </section>
-    <p class="footnote">这是一条特意选择的长例句形态链，并非日语中公认的「最长词」。示例遵循学校文法的活用术语，节点切分服务于交互展示；语法分类还需结合教材继续校对。<br>参考：<a href="https://www.kyozai.jpf.go.jp/kyozai/material/BMA00076/ja/render.do" target="_blank" rel="noreferrer">日本国际交流基金 · 使役受身形</a>、<a href="https://www.kokugobunpou.com/%E5%8A%A9%E5%8B%95%E8%A9%9E/%E3%81%9F%E3%81%84-%E3%81%9F%E3%81%8C%E3%82%8B/" target="_blank" rel="noreferrer">たい的活用</a>、<a href="https://benesse.jp/kyouiku/teikitest/chu/japanese/japanese/c00484.html" target="_blank" rel="noreferrer">「ない」的词性辨析</a>。</p>
+    <p class="footnote">本页是结构与交互实验，并非完整接续词典。样本首先按用户整理的《日语.xlsx》「用言活用」「助动词活用」「助动词接续（总表）」等工作表录入，非穷尽关系。词形分割服务于可视化；语法分类需继续对照教材。长路径是示例，不代表公认的「最长词」。<br>另可参见：<a href="https://www.kyozai.jpf.go.jp/kyozai/material/BMA00076/ja/render.do" target="_blank" rel="noreferrer">日本国际交流基金 · 使役受身形</a>、<a href="https://www.kokugobunpou.com/%E5%8A%A9%E5%8B%95%E8%A9%9E/%E3%81%9F%E3%81%84-%E3%81%9F%E3%81%8C%E3%82%8B/" target="_blank" rel="noreferrer">たい的活用</a>、<a href="https://benesse.jp/kyouiku/teikitest/chu/japanese/japanese/c00484.html" target="_blank" rel="noreferrer">「ない」的词性辨析</a>。</p>
   </main>
 <script>
 "use strict";
 
-// 每个单元保留语法身份；parts 是用于演示活用的可点击片段。
-const unit = (name, parts) => ({ name, parts });
-const verb = (ending, form) => unit("五段动词 · " + form, ["書", ending]);
-const causative = (full) => unit("使役助动词 · " + (full ? "基本形" : "未然形"), full ? ["せ", "る"] : ["せ"]);
-const passive = (full) => unit("被动助动词 · " + (full ? "基本形" : "连用形"), full ? ["られ", "る"] : ["られ"]);
-const wish = (ending) => unit("愿望助动词「たい」· " + (ending === "い" ? "基本形" : "连用形"), ["た", ending]);
-const negative = (ending, direct) => unit((direct ? "否定助动词" : "补助形容词") + "「ない」· " + (ending === "い" ? "基本形" : "连用形"), ["な", ending]);
-const past = () => unit("过去助动词", ["た"]);
-const inference = () => unit("推定助动词", ["らしい"]);
+// 一个语法单位可以包含多个视觉片段；身份 key 用来打开整个单位的详情。
+const unit = (name, parts, key = "other") => ({ name, parts, key });
+const verb = (ending, form) => unit("五段动词 · " + form, ["書", ending], "godan");
+const causative = (full) => unit("使役助动词 · " + (full ? "基本形" : "未然形"), full ? ["せ", "る"] : ["せ"], "seru");
+const passive = (full) => unit("被动助动词 · " + (full ? "基本形" : "连用形"), full ? ["られ", "る"] : ["られ"], "rareru");
+const wish = (ending) => unit("愿望助动词「たい」· " + (ending === "い" ? "基本形" : "连用形"), ["た", ending], "tai");
+const negative = (ending, direct) => unit((direct ? "否定助动词" : "补助形容词") + "「ない」· " + (ending === "い" ? "基本形" : "连用形"), ["な", ending], direct ? "naiAux" : "naiAdj");
+const past = () => unit("过去助动词", ["た"], "ta");
+const inference = () => unit("推定助动词", ["らしい"], "rashii");
 const choice = (text, desc, target, change) => ({ text, desc, target, change });
 
 // 仅保存样本路径，不在此原型中建立通用日语规则引擎。
@@ -260,10 +299,177 @@ const scenes = {
   }
 };
 
+// 以下为 Excel 接续表中的少量示例，不把这些候选当作穷尽的接续规则。
+Object.assign(scenes, {
+  taberu: { units: [unit("下一段动词 · 基本形", ["食べ", "る"], "ichidan")],
+    note: "下一段动词「食べる」可以去掉「る」，得到未然形或连用形的「食べ」。",
+    options: [choice("∅", "る → ∅ · 未然/连用", "tabeStem", "る → ∅ · 一段动词活用")] },
+  tabeStem: { units: [unit("下一段动词 · 未然/连用形", ["食べ"], "ichidan")],
+    note: "「食べ」既可以作为未然形接「ない」，也可以作为连用形接「ます」。选择接续时根据后接成分确定形态名称。",
+    options: [
+      choice("ない", "接在未然形之后", "tabenai", "＋ない · 否定"),
+      choice("ます", "接在连用形之后", "tabemasu", "＋ます · 礼貌"),
+      choice("まい", "接在未然形之后", "tabemai", "＋まい · 否定意志/推量")
+    ] },
+  tabenai: { units: [unit("下一段动词 · 未然形", ["食べ"], "ichidan"), negative("い", true)],
+    note: "得到「食べない」。点击整个「ない」单位查看活用及前接规则。",
+    options: [choice("かっ", "い → かっ · 连用", "tabenakatt", "い → かっ · 连用形")] },
+  tabenakatt: { units: [unit("下一段动词 · 未然形", ["食べ"], "ichidan"), negative("かっ", true)],
+    note: "「食べなかっ」可以接过去助动词「た」。",
+    options: [choice("た", "过去助动词", "tabenakatta", "＋た · 过去")] },
+  tabenakatta: { units: [unit("下一段动词 · 未然形", ["食べ"], "ichidan"), negative("かっ", true), past()],
+    note: "得到「食べなかった」。" },
+  tabemasu: { units: [unit("下一段动词 · 连用形", ["食べ"], "ichidan"), unit("礼貌助动词", ["ます"], "masu")],
+    note: "得到「食べます」。" },
+  tabemai: { units: [unit("下一段动词 · 未然形", ["食べ"], "ichidan"), unit("否定推量助动词", ["まい"], "mai")],
+    note: "得到「食べまい」。示例采用 Excel 所列的一段动词未然形接「まい」。" },
+  takai: { units: [unit("形容词 · 基本形", ["高", "い"], "adjective")],
+    note: "「高い」是形容词，活用尾「い」可变为「く」「かっ」「けれ」。",
+    options: [
+      choice("く", "连用形 · い → く", "takaku", "い → く · 连用形"),
+      choice("かっ", "连用形 · い → かっ", "takakatt", "い → かっ · 连用形"),
+      choice("けれ", "假定形 · い → けれ", "takakere", "い → けれ · 假定形")
+    ] },
+  takaku: { units: [unit("形容词 · 连用形", ["高", "く"], "adjective")],
+    note: "连用形「高く」可接「て」。",
+    options: [choice("て", "接续助词", "takakute", "＋て · 接续")] },
+  takakute: { units: [unit("形容词 · 连用形", ["高", "く"], "adjective"), unit("接续助词", ["て"], "particle")], note: "得到「高くて」。" },
+  takakatt: { units: [unit("形容词 · 连用形", ["高", "かっ"], "adjective")],
+    note: "连用形「高かっ」可接过去助动词「た」。",
+    options: [choice("た", "过去助动词", "takakatta", "＋た · 过去")] },
+  takakatta: { units: [unit("形容词 · 连用形", ["高", "かっ"], "adjective"), past()], note: "得到「高かった」。" },
+  takakere: { units: [unit("形容词 · 假定形", ["高", "けれ"], "adjective")],
+    note: "假定形「高けれ」可接「ば」。",
+    options: [choice("ば", "接续助词", "takakereba", "＋ば · 假定")] },
+  takakereba: { units: [unit("形容词 · 假定形", ["高", "けれ"], "adjective"), unit("接续助词", ["ば"], "particle")], note: "得到「高ければ」。" },
+  shizukada: { units: [unit("形容动词 · 基本形", ["静か", "だ"], "adjectival")],
+    note: "「静かだ」是形容动词。其连体形为「静かな」，连用形可以是「静かで」「静かだっ」等。",
+    options: [
+      choice("な", "连体形 · だ → な", "shizukana", "だ → な · 连体形"),
+      choice("で", "连用形 · だ → で", "shizukade", "だ → で · 连用形"),
+      choice("だっ", "连用形 · だ → だっ", "shizukadatt", "だ → だっ · 连用形"),
+      choice("なら", "假定形 · だ → なら", "shizukanara", "だ → なら · 假定形")
+    ] },
+  shizukana: { units: [unit("形容动词 · 连体形", ["静か", "な"], "adjectival")],
+    note: "连体形可以修饰体言，例如「静かな人」。",
+    options: [choice("人", "体言", "shizukanahito", "＋人 · 修饰体言")] },
+  shizukanahito: { units: [unit("形容动词 · 连体形", ["静か", "な"], "adjectival"), unit("体言", ["人"], "noun")], note: "得到「静かな人」。" },
+  shizukade: { units: [unit("形容动词 · 连用形", ["静か", "で"], "adjectival")], note: "得到连用形「静かで」，可继续接其他成分。本样本到此为止。" },
+  shizukadatt: { units: [unit("形容动词 · 连用形", ["静か", "だっ"], "adjectival")],
+    note: "连用形「静かだっ」可接过去助动词「た」。",
+    options: [choice("た", "过去助动词", "shizukadatta", "＋た · 过去")] },
+  shizukadatta: { units: [unit("形容动词 · 连用形", ["静か", "だっ"], "adjectival"), past()], note: "得到「静かだった」。" },
+  shizukanara: { units: [unit("形容动词 · 假定形", ["静か", "なら"], "adjectival")],
+    note: "得到假定形「静かなら」。" },
+  mai: { direction: "before", units: [unit("否定意志/推量助动词", ["まい"], "mai")],
+    note: "这次从「まい」反过来看前接。按照 Excel，五段动词可接终止形，一段动词可接未然形；使役助动词也有对应接续。",
+    options: [
+      choice("書く", "五段动词 · 终止形", "kakumai", "前接：五段动词终止形"),
+      choice("食べ", "一段动词 · 未然形", "tabemai", "前接：一段动词未然形"),
+      choice("書かせ", "使役助动词 · 未然形", "kakasemai", "前接：使役助动词未然形")
+    ] },
+  kakumai: { units: [verb("く", "终止形"), unit("否定意志/推量助动词", ["まい"], "mai")],
+    note: "得到「書くまい」：五段动词终止形＋まい。" },
+  kakasemai: { units: [verb("か", "未然形"), causative(false), unit("否定意志/推量助动词", ["まい"], "mai")],
+    note: "得到「書かせまい」：使役助动词「せる」的未然形＋まい。" }
+});
+
+const grammar = {
+  godan: { title: "五段动词 · 書く", summary: "活用词尾随接续变换。原型「書く」可分为词干「書」和活用尾「く」。",
+    forms: [["基本形/终止形", "書く"], ["未然形", "書か／書こ"], ["连用形", "書き（音便另论）"], ["假定形", "書け"]],
+    before: [["词干", "書＋活用词尾，构成动词"], ["适用范围", "这里仅使用「書く」作为五段动词样本"]],
+    after: [["未然形・書か", "ない、せる"], ["连用形・書き", "ます、たい"], ["终止形・書く", "まい、らしい"], ["假定形・書け", "ば"]],
+    source: "Excel「用言活用」「助动词接续（动词）」" },
+  ichidan: { title: "一段动词 · 食べる", summary: "以「食べ」为本例词干，「る」在未然形和连用形中脱落。",
+    forms: [["基本形", "食べる"], ["未然形", "食べ"], ["连用形", "食べ"], ["假定形", "食べれ"], ["命令形", "食べろ／食べよ"]],
+    before: [["组成", "食べ（词干）＋る（活用尾）"]],
+    after: [["未然形・食べ", "ない、させる、られる、まい"], ["连用形・食べ", "ます、たい"]],
+    source: "Excel「用言活用」「助动词接续（总表）」" },
+  adjective: { title: "形容词 · 高い", summary: "イ形容词的活用词尾是「い」，变化可沿着片段显示。",
+    forms: [["基本形", "高い"], ["连用形", "高く／高かっ"], ["假定形", "高けれ"]],
+    before: [["词干", "高＋活用词尾"]],
+    after: [["高く", "て"], ["高かっ", "た"], ["高けれ", "ば"]],
+    source: "Excel「用言活用」「常用活用形（简）」" },
+  adjectival: { title: "形容动词 · 静かだ", summary: "形容动词在连体形、连用形等位置使用不同活用尾。",
+    forms: [["基本形", "静かだ"], ["连体形", "静かな"], ["连用形", "静かで／静かだっ／静かに"], ["假定形", "静かなら"]],
+    before: [["词干", "静か＋活用词尾"]],
+    after: [["连体形・静かな", "体言，如「人」"], ["连用形・静かだっ", "た"]],
+    source: "Excel「用言活用」「常用活用形（简）」" },
+  mai: { title: "助动词 · まい", summary: "表示否定意志或否定推量。这里优先展示它前面接什么，而不是从某个动词继续向后展开。",
+    forms: [["终止形", "まい"], ["连体形", "まい"], ["活用特点", "学校文法表中标作无活用"]],
+    before: [["五段动词", "终止形：書く＋まい"], ["一段动词", "未然形：食べ＋まい"], ["使役助动词", "未然形：書かせ＋まい"], ["其他条目", "Excel 另列「ます」「被动助动词」的接续，尚未做交互"]],
+    after: [["终止形／连体形", "本原型未展开「まい」后面的成分；不代表不能接续"]],
+    source: "Excel「助动词活用」「助动词接续（总表）」「助动词接续（动词）」" },
+  seru: { title: "使役助动词 · せる", summary: "五段动词未然形后接「せる」。它本身也有下一段式活用。",
+    forms: [["基本形", "せる"], ["未然形", "せ"], ["连用形", "せ"], ["假定形", "せれ"]],
+    before: [["动词", "五段动词未然形，如「書か」"]],
+    after: [["未然形・せ", "られる、まい"]],
+    source: "Excel「助动词活用」「助动词接续（总表）」" },
+  rareru: { title: "被动助动词 · られる", summary: "这里以使役被动中的「られる」展示活用与后接。",
+    forms: [["基本形", "られる"], ["未然形", "られ"], ["连用形", "られ"], ["假定形", "られれ"]],
+    before: [["使役助动词", "未然形，如「書かせ」"]],
+    after: [["连用形・られ", "たい"], ["未然形・られ", "まい（按 Excel 样本）"]],
+    source: "Excel「助动词活用」「助动词接续（总表）」" },
+  tai: { title: "愿望助动词 · たい", summary: "形容词型活用。点击「い」可以看到活用为「く」「かっ」。",
+    forms: [["基本形", "たい"], ["连用形", "たく／たかっ"], ["假定形", "たけれ"]],
+    before: [["动词及助动词", "连用形，如「書き」「られ」"]],
+    after: [["たく", "ない（愿望否定）"], ["たかっ", "た（过去）"]],
+    source: "Excel「助动词活用」「助动词接续（总表）」" },
+  naiAux: { title: "否定助动词 · ない", summary: "直接接在动词未然形之后，属于形容词型活用。",
+    forms: [["基本形", "ない"], ["连用形", "なく／なかっ"], ["假定形", "なけれ"]],
+    before: [["动词", "未然形，如「書か」「食べ」"]],
+    after: [["なかっ", "た"], ["なく", "て"]],
+    source: "Excel「助动词活用」「助动词接续（总表）」" },
+  naiAdj: { title: "补助形容词 · ない", summary: "如「たくない」的「ない」，这里按学校文法视为补助形容词；它与否定助动词有不同的前接条件。",
+    forms: [["基本形", "ない"], ["连用形", "なく／なかっ"], ["假定形", "なけれ"]],
+    before: [["形容词型活用", "连用形，如「たく」"]],
+    after: [["なかっ", "た"], ["なく", "て"]],
+    source: "Excel「助动词接续（总表）」中「形容」类「ない」；分类另待教材校核" },
+  masu: { title: "礼貌助动词 · ます", summary: "接动词的连用形，表示礼貌。",
+    forms: [["基本形", "ます"], ["连用形", "まし"], ["未然形", "ませ／ましょ"]],
+    before: [["动词", "连用形，如「書き」「食べ」"]],
+    after: [["连用形・まし", "た"], ["终止形・ます", "まい（Excel 所列）"]],
+    source: "Excel「助动词活用」「助动词接续（总表）」" },
+  ta: { title: "过去助动词 · た", summary: "前接连用形，形成过去或完成的表达。",
+    forms: [["基本形", "た"], ["假定形", "たら"]],
+    before: [["用言/助动词", "连用形，如「高かっ」「なかっ」"]],
+    after: [["后接", "本原型未展开，不能据此判断不可接"]],
+    source: "Excel「助动词活用」「助动词接续（总表）」" },
+  rashii: { title: "推定助动词 · らしい", summary: "表示推定等意义，按形容词型活用。",
+    forms: [["基本形", "らしい"], ["连用形", "らしく／らしかっ"], ["假定形", "らしけれ"]],
+    before: [["动词", "终止形"], ["形容词", "终止形"], ["其他助动词", "依具体接续形式"]],
+    after: [["连用形", "可继续接相应成分，本原型尚未展开"]],
+    source: "Excel「助动词活用」「助动词接续（总表）」" },
+  particle: { title: "接续助词", summary: "连接前后的语法成分；不同助词有不同的前接条件。",
+    forms: [["活用", "助词本身一般不活用"]],
+    before: [["ば", "假定形"], ["て", "连用形"]],
+    after: [["后接", "当前样本没有收录完整规则"]],
+    source: "Excel「助词接续」" },
+  noun: { title: "体言", summary: "这里只用「人」演示形容动词连体形修饰体言。",
+    forms: [["活用", "体言通常无活用"]],
+    before: [["连体修饰", "例如「静かな」"]],
+    after: [["后接", "当前样本未展开助词关系"]],
+    source: "示例词，参照 Excel「用言活用」" },
+  other: { title: "其他语法成分", summary: "这是尚未独立建档的样本成分。",
+    forms: [["活用", "本示例尚未整理"]],
+    before: [["前接", "按当前路径展示"]],
+    after: [["后接", "尚未建立完整规则表"]],
+    source: "本页样本" }
+};
+const starters = [
+  { id: "base", label: "書く", type: "五段动词" },
+  { id: "taberu", label: "食べる", type: "一段动词" },
+  { id: "takai", label: "高い", type: "形容词" },
+  { id: "shizukada", label: "静かだ", type: "形容动词" },
+  { id: "mai", label: "まい", type: "助动词 · 反向探索" }
+];
+
 const longRoute = ["base", "ka", "caus", "causStem", "passive", "passiveStem", "tai", "taku", "wishNai", "wishNakatt", "wishPast", "long"];
+let startId = "base";
 let history = [{ id: "base", change: "書く · 基本形" }];
 let expanded = false;
-let selectedInfo = "";
+let selectedUnit = "godan";
+let selectedTab = "forms";
 const current = () => scenes[history[history.length - 1].id];
 const written = (scene) => scene.units.map((u) => u.parts.join("")).join("");
 
@@ -273,17 +479,54 @@ function make(tag, className, text) {
   if (text !== undefined) node.textContent = text;
   return node;
 }
+function selectUnit(key) {
+  selectedUnit = key;
+  selectedTab = "forms";
+  render(false);
+}
+function setStart(id) {
+  startId = id;
+  history = [{ id, change: written(scenes[id]) + " · 起点" }];
+  selectedUnit = scenes[id].units[scenes[id].units.length - 1].key;
+  selectedTab = "forms";
+  expanded = true;
+  render(false);
+}
 function advance(option) {
   history.push({ id: option.target, change: option.change });
-  selectedInfo = "";
-  expanded = false;
+  selectedUnit = current().units[current().units.length - 1].key;
+  selectedTab = "forms";
+  expanded = !!current().options?.length; // 选中虚节点后，直接展开新一层候选
   render(true);
 }
 function moveTo(index) {
   history = history.slice(0, index + 1);
-  selectedInfo = "";
-  expanded = false;
+  selectedUnit = current().units[current().units.length - 1].key;
+  selectedTab = "forms";
+  expanded = !!current().options?.length;
   render(true);
+}
+function renderGrammar() {
+  const info = grammar[selectedUnit] ?? grammar.other;
+  document.getElementById("grammar-title").textContent = info.title;
+  document.getElementById("grammar-summary").textContent = info.summary;
+  document.getElementById("grammar-source").textContent = "资料来源：" + info.source + "。仅展示已核对的样本关系。";
+  const labels = { forms: "活用", before: "前接", after: "后接" };
+  const body = document.getElementById("grammar-body");
+  body.replaceChildren();
+  const dl = make("dl", "");
+  (info[selectedTab] ?? []).forEach(([kind, explanation]) => {
+    const row = make("div", "grammar-row");
+    row.appendChild(make("dt", "", kind));
+    row.appendChild(make("dd", "", explanation));
+    dl.appendChild(row);
+  });
+  body.appendChild(dl);
+  document.querySelectorAll("[data-tab]").forEach((button) => {
+    const active = button.dataset.tab === selectedTab;
+    button.setAttribute("aria-selected", String(active));
+    button.tabIndex = active ? 0 : -1;
+  });
 }
 function render(scrollRight) {
   const scene = current();
@@ -291,58 +534,73 @@ function render(scrollRight) {
   chain.replaceChildren();
   document.getElementById("form").textContent = written(scene);
   document.getElementById("step-count").textContent = "· " + (history.length - 1) + " 步";
-  document.getElementById("explanation").textContent = selectedInfo || scene.note;
+  document.getElementById("explanation").textContent = scene.note;
   document.getElementById("rule-change").textContent = history[history.length - 1].change;
   document.getElementById("back").disabled = history.length === 1;
 
+  const makeChoiceDock = () => {
+    const dock = make("div", "choice-wrap" + (scene.direction === "before" ? " backward" : ""));
+    dock.appendChild(make("div", "choice-label", scene.direction === "before" ? "可放在「まい」前面的形式 ←" : "选择后，自动展开下一层 →"));
+    const choices = make("div", "choices");
+    scene.options.forEach((option) => {
+      const candidate = make("button", "choice");
+      candidate.type = "button";
+      candidate.appendChild(make("strong", "", option.text));
+      candidate.appendChild(make("small", "", option.desc));
+      candidate.title = option.change;
+      candidate.addEventListener("click", () => advance(option));
+      choices.appendChild(candidate);
+    });
+    dock.appendChild(choices);
+    return dock;
+  };
+  // 反向探索时，前接候选在左，语法单位在右。
+  if (scene.direction === "before" && scene.options?.length && expanded) {
+    chain.appendChild(makeChoiceDock());
+    chain.appendChild(make("span", "connector backward"));
+  }
   scene.units.forEach((u, ui) => {
     if (ui > 0) chain.appendChild(make("span", "connector"));
-    const box = make("div", "unit");
-    box.appendChild(make("div", "unit-name", u.name));
+    const box = make("div", "unit" + (u.key === selectedUnit ? " is-selected" : ""));
+    const heading = make("button", "unit-name", u.name);
+    heading.type = "button";
+    heading.title = "查看整个语法单位的活用及接续";
+    heading.addEventListener("click", () => selectUnit(u.key));
+    box.appendChild(heading);
     const row = make("div", "pieces");
     u.parts.forEach((part, pi) => {
-      const focus = ui === scene.units.length - 1 && pi === u.parts.length - 1 && !!scene.options?.length;
+      const focus = (scene.direction === "before" || ui === scene.units.length - 1) &&
+        pi === u.parts.length - 1 && !!scene.options?.length;
       const button = make("button", "piece" + (focus ? " is-focus" : ""), part);
       button.type = "button";
-      button.title = focus ? "点击展开后续候选" : "点击查看所属语法单位";
+      button.title = focus ? "点击切换候选" : "查看这个片段所属的语法单位";
       button.setAttribute("aria-expanded", String(focus && expanded));
       button.addEventListener("click", () => {
-        if (focus) {
-          expanded = !expanded;
-          selectedInfo = "";
-        } else {
-          selectedInfo = "「" + part + "」属于「" + u.name + "」。本次原型仅从红色节点展开下一步；可以通过下方历史回退。";
-        }
+        selectedUnit = u.key;
+        selectedTab = "forms";
+        if (focus) expanded = !expanded;
         render(false);
       });
       row.appendChild(button);
     });
     box.appendChild(row);
+    box.title = "点击单位边框或标题，可查看整体语法信息";
+    box.addEventListener("click", (event) => {
+      if (event.target === box || event.target === row) selectUnit(u.key);
+    });
     chain.appendChild(box);
   });
 
   if (scene.options?.length) {
-    chain.appendChild(make("span", "connector"));
-    if (expanded) {
-      const dock = make("div", "choice-wrap");
-      dock.appendChild(make("div", "choice-label", "尚未选择 · 半透明候选"));
-      const choices = make("div", "choices");
-      scene.options.forEach((option) => {
-        const candidate = make("button", "choice");
-        candidate.type = "button";
-        candidate.appendChild(make("strong", "", option.text));
-        candidate.appendChild(make("small", "", option.desc));
-        candidate.title = option.change;
-        candidate.addEventListener("click", () => advance(option));
-        choices.appendChild(candidate);
-      });
-      dock.appendChild(choices);
-      chain.appendChild(dock);
-    } else {
-      chain.appendChild(make("div", "invitation", "点击红色节点，展开接续候选 →"));
+    if (scene.direction !== "before") {
+      chain.appendChild(make("span", "connector"));
+      if (expanded) chain.appendChild(makeChoiceDock());
+      else chain.appendChild(make("div", "invitation", "点击红色词尾，查看候选 →"));
+    } else if (!expanded) {
+      chain.appendChild(make("div", "invitation", "← 点击红色助动词，查看前接形式"));
     }
   } else {
-    chain.appendChild(make("div", "invitation", "这条演示路径已结束"));
+    chain.appendChild(make("div", "invitation", "当前样本分支到此结束，可切换起点"));
   }
 
   const trail = document.getElementById("trail");
@@ -354,29 +612,49 @@ function render(scrollRight) {
     button.addEventListener("click", () => moveTo(index));
     trail.appendChild(button);
   });
+  const startersEl = document.getElementById("starters");
+  startersEl.replaceChildren();
+  starters.forEach(({ id, label, type }) => {
+    const button = make("button", "start-option" + (startId === id ? " active" : ""), label);
+    button.type = "button";
+    button.title = type;
+    button.setAttribute("aria-pressed", String(startId === id));
+    button.addEventListener("click", () => setStart(id));
+    startersEl.appendChild(button);
+  });
+  renderGrammar();
   if (scrollRight) {
     requestAnimationFrame(() => {
       const board = document.getElementById("board");
-      board.scrollLeft = board.scrollWidth;
+      board.scrollLeft = scene.direction === "before" ? 0 : board.scrollWidth;
     });
   }
 }
 
 if (typeof document !== "undefined") {
   document.getElementById("back").addEventListener("click", () => { if (history.length > 1) moveTo(history.length - 2); });
-  document.getElementById("reset").addEventListener("click", () => moveTo(0));
+  document.getElementById("reset").addEventListener("click", () => setStart(startId));
   document.getElementById("full").addEventListener("click", () => {
+    startId = "base";
     history = longRoute.map((id, index) => {
       const previous = scenes[longRoute[index - 1]];
       const chosen = previous?.options?.find((x) => x.target === id);
-      return { id, change: chosen ? chosen.change : "書く · 基本形" };
+      return { id, change: chosen ? chosen.change : "書く · 起点" };
     });
+    selectedUnit = "rashii";
+    selectedTab = "forms";
     expanded = false;
-    selectedInfo = "";
     render(true);
+  });
+  document.querySelectorAll("[data-tab]").forEach((button) => {
+    button.addEventListener("click", () => {
+      selectedTab = button.dataset.tab;
+      renderGrammar();
+    });
   });
   render(false);
 }
+
 </script>
 </body>
 </html>
