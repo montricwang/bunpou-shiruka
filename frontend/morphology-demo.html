@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>语法图谱实验 · 文法？知るか！</title>
+<style>
+:root{--bg:#f7f6f2;--paper:#fffefa;--ink:#293335;--muted:#7b8685;--line:#e2e5de;--red:#aa381e;--rose:#fff0e9;color-scheme:light;font-family:"Segoe UI","Noto Sans CJK SC","Microsoft YaHei",sans-serif}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink)}
+button{font:inherit;cursor:pointer}
+button:focus-visible{outline:2px solid var(--red);outline-offset:3px}
+main{max-width:1360px;margin:auto;padding:29px 34px 38px}
+header{display:flex;align-items:center;justify-content:space-between;gap:18px}
+.brand{font-size:17px;font-weight:700}
+.version{font-size:11px;letter-spacing:.04em;color:var(--muted);border:1px solid var(--line);border-radius:25px;padding:6px 11px}
+.intro{margin:74px 0 30px;display:flex;justify-content:space-between;align-items:flex-end;gap:22px;flex-wrap:wrap}
+.eyebrow{font-size:11px;color:var(--red);letter-spacing:.15em;font-weight:700}
+h1{font-size:clamp(26px,3.4vw,43px);font-weight:640;letter-spacing:-.03em;margin:10px 0}
+.intro p{font-size:13px;line-height:1.8;color:var(--muted);margin:0}
+.switch{display:flex;gap:4px;border:1px solid var(--line);background:#eeefeb;border-radius:11px;padding:4px}
+.switch button{border:0;background:none;color:var(--muted);font-size:14px;padding:10px 21px;border-radius:8px}
+.switch button[aria-pressed=true]{background:var(--paper);color:var(--ink);box-shadow:0 1px 7px #28383315;font-weight:650}
+.shell{border:1px solid var(--line);border-radius:18px;background:var(--paper);overflow:hidden}
+.tools{min-height:76px;display:flex;align-items:center;justify-content:space-between;padding:16px 23px;gap:16px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+.surface{display:flex;align-items:baseline;gap:14px}
+.surface small{font-size:11px;color:var(--muted)}
+output{font-size:clamp(20px,2.3vw,29px);font-family:"Yu Gothic","Noto Sans JP",sans-serif;font-weight:650;overflow-wrap:anywhere}
+.actions{display:flex;gap:9px}
+.actions button{border:1px solid var(--line);padding:8px 12px;color:var(--muted);font-size:12px;border-radius:8px;background:none}
+.actions button:hover:not(:disabled){border-color:var(--red);color:var(--red)}
+.actions button:disabled{opacity:.4;cursor:default}
+.stage{position:relative;overflow:auto;min-height:540px;background-image:radial-gradient(#d1d7d0 .8px,transparent .9px);background-size:20px 20px}
+#graph{display:block;height:540px}
+.edge{stroke:#b8c0bb;stroke-width:1.7;fill:none;stroke-dasharray:5 6}
+.edge.solid{stroke:var(--red);stroke-width:2.2;stroke-dasharray:none}
+.trace{border-top:1px solid var(--line);display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:49px;padding:11px 22px}
+.trace .hint{font-size:11px;color:var(--muted);margin-right:8px}
+.trace button{border:0;border-radius:7px;background:#f1efec;color:#71645e;padding:5px 9px;font-size:12px}
+.trace button:hover{background:var(--rose);color:var(--red)}
+.trace .arrow{font-size:12px;color:#a5ada8}
+.popover{position:absolute;z-index:5;right:20px;bottom:20px;width:min(320px,calc(100% - 40px));background:var(--paper);border:1px solid #e0beb2;border-radius:13px;padding:18px 20px;box-shadow:0 12px 36px #33333317}
+.popover[hidden]{display:none}
+.popover h2{font-size:17px;margin:0 24px 10px 0}
+.popover p{font-size:12px;color:#65716f;line-height:1.8;margin:0}
+.popover button{border:0;background:none;color:var(--muted);position:absolute;right:10px;top:9px;padding:6px}
+.foot{font-size:12px;line-height:1.8;color:var(--muted);margin:17px 3px}
+@media(max-width:680px){main{padding:21px 14px}.intro{margin:43px 0 23px}.tools{padding:13px}.stage{min-height:430px}#graph{height:430px}.trace{padding:11px 13px}}
+
+/* Graph v7: grammar units persist while their endings change. */
+:root {
+  --graph-grid:#d2d8d2;--panel-soft:#eff0ec;--muted-panel:#f8f9f5;--active-frame:#fff7f3;
+  --ghost-frame:#fafbf7;--node-bg:#fffefa;--node-border:#b7c2bb;--ghost-stroke:#bfc8c2;
+  --label-strong:#293335;--edge-stroke:#b9c3bb;--info-border:#c4cec7;--popover-border:#e0beb2;
+}
+html[data-theme="dark"] {
+  color-scheme:dark;
+  --bg:#1e2327;--paper:#292f34;--ink:#e8e9e4;--muted:#aebbb9;--line:#444e50;--red:#dd8a72;--rose:#45352f;
+  --graph-grid:#465052;--panel-soft:#343d40;--muted-panel:#2c3336;--active-frame:#39302e;
+  --ghost-frame:#293137;--node-bg:#343b40;--node-border:#68767a;--ghost-stroke:#76817f;
+  --label-strong:#f0eee8;--edge-stroke:#889a9a;--info-border:#8a9795;--popover-border:#72564e;
+}
+.header-actions{display:flex;align-items:center;gap:11px}
+#theme-toggle{background:var(--paper);color:var(--ink);border:1px solid var(--line);padding:8px 13px;border-radius:8px;font-size:12px}
+#theme-toggle:hover{border-color:var(--red)}
+.switch{background:var(--panel-soft)}
+.switch button[aria-pressed=true]{box-shadow:none}
+.stage{background-image:radial-gradient(var(--graph-grid) .8px,transparent .9px)}
+.trace button{background:var(--panel-soft);color:var(--ink)}
+.trace-piece{background:var(--panel-soft);color:var(--ink);font-size:12px;border-radius:7px;padding:5px 9px}
+.popover{border-color:var(--popover-border)}
+.popover p{color:var(--muted)}
+.unit-frame{fill:var(--ghost-frame);stroke:var(--node-border);stroke-width:1.65;stroke-dasharray:7 6;rx:14}
+.unit.active .unit-frame{fill:var(--active-frame);stroke:var(--red)}
+.unit.ghost .unit-frame{fill:var(--ghost-frame);stroke:var(--ghost-stroke);stroke-dasharray:5 6}
+.unit-title{fill:var(--muted);font-size:12px;font-weight:620;pointer-events:none}
+.unit.active .unit-title{fill:var(--red)}
+.atom-shape{fill:var(--node-bg);stroke:var(--node-border);stroke-width:1.4;rx:9}
+.atom-label{fill:var(--ink);font-size:24px;font-weight:670;pointer-events:none;font-family:"Yu Gothic","Noto Sans JP",sans-serif}
+.atom-role{fill:var(--muted);font-size:10px;pointer-events:none}
+.unit.ghost .atom-label,.unit.ghost .atom-role{opacity:.75}
+.atom-hit{cursor:grab;touch-action:none}
+.unit.dragging,.atom-hit.dragging{cursor:grabbing}
+.atom-hit:hover .atom-shape{stroke:var(--red);stroke-width:2}
+.choice{cursor:pointer;touch-action:none}
+
+.suffix-frame{fill:var(--node-bg);fill-opacity:.38;stroke:var(--ghost-stroke);stroke-width:1.35;stroke-dasharray:6 5;rx:11;pointer-events:none}
+.suffix-caption{fill:var(--muted);font-size:10px;font-weight:700;pointer-events:none}
+.choice .choice-shape{fill:var(--node-bg);fill-opacity:.65;stroke:var(--ghost-stroke);stroke-width:1.6;stroke-dasharray:5 4;rx:8}
+.choice:hover .choice-shape{stroke:var(--red);fill:var(--rose)}
+.choice.selected .choice-shape{stroke:var(--red);stroke-width:2.2;stroke-dasharray:none;fill:var(--active-frame);fill-opacity:1}
+.choice.selected .choice-label{fill:var(--red)}
+.choice-type{fill:var(--ink);font-size:12px;font-weight:650;pointer-events:none}
+.choice-variant{fill:var(--muted);font-size:9.5px;pointer-events:none}
+.choice.selected .choice-type{fill:var(--red)}
+.unit.active .choice-guide{stroke:var(--edge-stroke)}
+
+.choice .choice-label{fill:var(--ink);font-size:21px;font-weight:600;pointer-events:none}
+.choice .choice-detail{fill:var(--muted);font-size:10px;pointer-events:none}
+.choice-guide{stroke:var(--edge-stroke);stroke-width:1.4;stroke-dasharray:4 5;fill:none}
+.link{stroke:var(--edge-stroke);stroke-width:1.8;fill:none}
+.link.solid{stroke:var(--red);stroke-width:2.2}
+.chrome-hit{cursor:pointer}
+.chrome-circle{fill:var(--paper);stroke:var(--info-border);stroke-width:1.2}
+.chrome-glyph{fill:var(--muted);font-size:12px;font-weight:700;pointer-events:none}
+.unit.active .chrome-glyph{fill:var(--red)}
+.path-hint{fill:var(--muted);font-size:12px}
+button:focus-visible,[role="button"]:focus-visible{outline:2px solid var(--red);outline-offset:3px}
+@media(max-width:680px){.intro{gap:14px}.header-actions{gap:6px}#theme-toggle{padding:7px 10px}}
+
+
+</style>
+</head>
+<body>
+<main>
+<header><div class="brand">文法？知るか！</div><div class="header-actions"><button id="theme-toggle" type="button" aria-label="切换深色模式" aria-pressed="false">夜间模式</button><span class="version">GRAPH EXPERIMENT · 008</span></div></header>
+<section class="intro">
+<div><div class="eyebrow">GRAMMAR GRAPH</div><h1>点开一条关系，继续探索。</h1><p>点击「書く」的词尾，右侧纵向展开六种活用形；同形「く」「け」也按功能区分。选择后继续向右接续。</p></div>
+<nav class="switch" aria-label="起点"><button data-mode="kaku" aria-pressed="true">書く</button><button data-mode="mai" aria-pressed="false">まい</button></nav>
+</section>
+<section class="shell">
+<div class="tools"><div class="surface"><small>当前构造</small><output id="surface">書く</output></div><div class="actions"><button id="back" type="button">← 返回</button><button id="reset" type="button">重置</button></div></div>
+<div class="stage" id="stage">
+<svg id="graph" role="group" aria-label="逐级展开的日语语法关系图"></svg>
+<aside class="popover" id="popover" hidden><button id="close" type="button" aria-label="关闭说明">✕</button><h2 id="info-title"></h2><p id="info-text"></p></aside>
+</div>
+<div class="trace" id="trace"></div>
+</section>
+<p class="foot">六种动词活用形不一定对应六种不同的词尾。「書く」以八个形式候选展示未然形、连用形、终止形、连体形、假定形、命令形；选择后只更新原语法单位，新的助词、助动词才另起分组。例句暂不加入。</p>
+</main>
+<script src="./morphology-demo.js"></script>
+</body>
+</html>
