@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>形态链实验｜文法？知るか！</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f3ed;
+      --paper: #fffefa;
+      --ink: #293238;
+      --muted: #687577;
+      --line: #dcded8;
+      --accent: #ac4934;
+      --accent-bg: #fff0e9;
+      --soft: #eeefe9;
+      font-family: "Segoe UI", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); }
+    button { font: inherit; cursor: pointer; }
+    button:focus-visible { outline: 3px solid #6b99c8; outline-offset: 3px; }
+    .wrap { max-width: 1240px; margin: 0 auto; padding: 42px 32px 80px; }
+    .topline { display: flex; align-items: center; gap: 16px; justify-content: space-between; }
+    .brand { font-size: 16px; font-weight: 700; letter-spacing: .025em; }
+    .tag { font-size: 11px; color: var(--muted); border: 1px solid var(--line); padding: 6px 10px; border-radius: 24px; }
+    .intro { margin: 70px 0 28px; }
+    .kicker { color: var(--accent); font-size: 12px; letter-spacing: .15em; font-weight: 700; }
+    h1 { font-size: clamp(30px, 5vw, 54px); font-weight: 650; letter-spacing: -.035em; margin: 14px 0 16px; }
+    .intro p { color: var(--muted); line-height: 1.8; margin: 0; max-width: 730px; }
+    .summary { display: flex; gap: 24px; justify-content: space-between; align-items: end; margin: 40px 0 22px; flex-wrap: wrap; }
+    .label { color: var(--muted); font-size: 12px; letter-spacing: .05em; }
+    output { display: block; margin-top: 9px; font-size: clamp(26px, 3.1vw, 41px); line-height: 1.4; font-weight: 580; overflow-wrap: anywhere; font-family: "Yu Gothic", "Noto Sans JP", sans-serif; }
+    .controls { display: flex; gap: 9px; flex-wrap: wrap; }
+    .controls button { background: var(--paper); border: 1px solid var(--line); padding: 10px 14px; border-radius: 9px; color: var(--ink); }
+    .controls button:hover:not(:disabled) { border-color: var(--accent); }
+    .controls button:disabled { opacity: .4; cursor: not-allowed; }
+    .controls .primary { background: var(--ink); color: white; border-color: var(--ink); }
+    .board { padding: 46px 28px 44px; border: 1px solid var(--line); border-radius: 18px; min-height: 230px; overflow-x: auto; background-color: var(--paper); background-image: radial-gradient(#cbd0cd 0.6px, transparent 0.7px); background-size: 19px 19px; }
+    .chain { display: flex; align-items: center; width: max-content; min-width: 100%; gap: 0; padding-right: 10px; }
+    .unit { padding: 13px 13px 11px; border: 1px solid #c9ceca; border-radius: 12px; background: rgba(255,255,255,.96); min-height: 104px; }
+    .unit-name { font-size: 11px; color: var(--muted); margin: 0 0 12px; white-space: nowrap; }
+    .pieces { display: flex; gap: 5px; align-items: center; }
+    .piece { border: 1px solid #d2d6d3; color: var(--ink); background: #f8f9f6; border-radius: 8px; min-width: 46px; height: 48px; padding: 0 10px; font: 600 25px/1 "Yu Gothic", "Noto Sans JP", sans-serif; }
+    .piece:hover { border-color: var(--accent); }
+    .piece.is-focus { border: 1.5px solid var(--accent); color: var(--accent); background: var(--accent-bg); box-shadow: 0 0 0 3px rgba(172,73,52,.08); }
+    .connector { display: flex; align-items: center; width: 42px; flex: 0 0 42px; justify-content: center; }
+    .connector:before { content: ""; height: 1px; width: 32px; background: #aeb8b1; }
+    .connector:after { content: ""; width: 6px; height: 6px; border-top: 1.5px solid #88958c; border-right: 1.5px solid #88958c; transform: rotate(45deg); margin-left: -8px; }
+    .choice-wrap { border-left: 1px dashed #bdc3bf; padding-left: 16px; margin-left: 8px; display: flex; flex-direction: column; gap: 9px; }
+    .choice-label { font-size: 11px; color: var(--muted); white-space: nowrap; }
+    .choices { display: flex; flex-wrap: wrap; max-width: 380px; gap: 9px; }
+    .choice { text-align: left; border: 1.5px dashed #c9bcb5; color: var(--muted); opacity: .65; background: #fef7f1; padding: 10px 13px; border-radius: 11px; min-width: 88px; transition: opacity .16s, transform .16s, border-color .16s; }
+    .choice:hover, .choice:focus-visible { opacity: 1; border-color: var(--accent); transform: translateY(-2px); }
+    .choice strong { display: block; font-size: 20px; color: var(--accent); font-family: "Yu Gothic", sans-serif; }
+    .choice small { display: block; font-size: 11px; margin-top: 5px; max-width: 140px; line-height: 1.5; }
+    .invitation { color: var(--muted); font-size: 13px; white-space: nowrap; background: rgba(255,255,255,.84); padding: 12px 14px; border-radius: 8px; }
+    .details { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 20px; margin-top: 20px; }
+    .panel { border: 1px solid var(--line); background: var(--paper); border-radius: 14px; padding: 23px 25px; }
+    h2 { margin: 0 0 12px; font-size: 15px; font-weight: 650; }
+    .panel p { font-size: 13px; color: var(--muted); line-height: 1.9; margin: 0; }
+    #rule-change { display: inline-block; font: 600 15px/1.6 "Noto Sans JP", sans-serif; color: var(--accent); background: var(--accent-bg); padding: 6px 11px; border-radius: 7px; margin: 6px 0 13px; }
+    .trail { display: flex; gap: 6px; flex-wrap: wrap; }
+    .trail button { border: 1px solid var(--line); border-radius: 7px; padding: 6px 9px; background: var(--soft); font-size: 11px; color: var(--muted); }
+    .trail button.current { border-color: #cda396; background: var(--accent-bg); color: var(--accent); }
+    .footnote { color: var(--muted); font-size: 12px; line-height: 1.8; margin-top: 24px; }
+    .footnote a { color: var(--accent); }
+    @media (max-width: 700px) {
+      .wrap { padding: 25px 16px 55px; }
+      .intro { margin: 42px 0 16px; }
+      .board { padding: 29px 16px; }
+      .details { grid-template-columns: 1fr; }
+      .unit { min-height: 95px; padding: 10px; }
+      .piece { min-width: 40px; height: 44px; font-size: 22px; }
+      .panel { padding: 19px; }
+    }
+    @media (prefers-reduced-motion: reduce) { .choice { transition: none; } }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header class="topline"><div class="brand">文法？知るか！</div><span class="tag">形态链实验 · 001</span></header>
+    <section class="intro">
+      <div class="kicker">MORPHOLOGY PLAYGROUND</div>
+      <h1>从一个「く」出发。</h1>
+      <p>将词干、活用词尾与后接成分拆成节点。点击红色实节点，选择半透明的候选，沿着接续关系一步步构造日语表达。</p>
+    </section>
+    <section class="summary" aria-label="当前表达">
+      <div><div class="label">当前组成的完整形态 <span id="step-count"></span></div><output id="form" aria-live="polite">書く</output></div>
+      <div class="controls">
+        <button id="back" type="button">← 上一步</button>
+        <button id="reset" type="button">重置</button>
+        <button class="primary" id="full" type="button">查看完整长路径</button>
+      </div>
+    </section>
+    <section class="board" id="board" aria-label="语法形态关系图">
+      <div class="chain" id="chain"></div>
+    </section>
+    <section class="details">
+      <div class="panel">
+        <h2>当前语法关系</h2>
+        <div id="rule-change">辞書形</div>
+        <p id="explanation"></p>
+      </div>
+      <div class="panel">
+        <h2>已走过的变化</h2>
+        <div class="trail" id="trail"></div>
+      </div>
+    </section>
+    <p class="footnote">这是一条特意选择的长例句形态链，并非日语中公认的「最长词」。示例遵循学校文法的活用术语，节点切分服务于交互展示；语法分类还需结合教材继续校对。<br>参考：<a href="https://www.kyozai.jpf.go.jp/kyozai/material/BMA00076/ja/render.do" target="_blank" rel="noreferrer">日本国际交流基金 · 使役受身形</a>、<a href="https://www.kokugobunpou.com/%E5%8A%A9%E5%8B%95%E8%A9%9E/%E3%81%9F%E3%81%84-%E3%81%9F%E3%81%8C%E3%82%8B/" target="_blank" rel="noreferrer">たい的活用</a>、<a href="https://benesse.jp/kyouiku/teikitest/chu/japanese/japanese/c00484.html" target="_blank" rel="noreferrer">「ない」的词性辨析</a>。</p>
+  </main>
+<script>
+"use strict";
+
+// 每个单元保留语法身份；parts 是用于演示活用的可点击片段。
+const unit = (name, parts) => ({ name, parts });
+const verb = (ending, form) => unit("五段动词 · " + form, ["書", ending]);
+const causative = (full) => unit("使役助动词 · " + (full ? "基本形" : "未然形"), full ? ["せ", "る"] : ["せ"]);
+const passive = (full) => unit("被动助动词 · " + (full ? "基本形" : "连用形"), full ? ["られ", "る"] : ["られ"]);
+const wish = (ending) => unit("愿望助动词「たい」· " + (ending === "い" ? "基本形" : "连用形"), ["た", ending]);
+const negative = (ending, direct) => unit((direct ? "否定助动词" : "补助形容词") + "「ない」· " + (ending === "い" ? "基本形" : "连用形"), ["な", ending]);
+const past = () => unit("过去助动词", ["た"]);
+const inference = () => unit("推定助动词", ["らしい"]);
+const choice = (text, desc, target, change) => ({ text, desc, target, change });
+
+// 仅保存样本路径，不在此原型中建立通用日语规则引擎。
+const scenes = {
+  base: {
+    units: [verb("く", "基本形")],
+    note: "「書」是词干，「く」是五段动词的活用词尾。先点击红色的「く」，查看可以走向哪些活用形。",
+    options: [
+      choice("か", "未然形 · く → か", "ka", "く → か · 未然形"),
+      choice("き", "连用形 · く → き", "ki", "く → き · 连用形"),
+      choice("け", "假定形 · く → け", "ke", "く → け · 假定形"),
+      choice("こ", "未然形 · く → こ", "ko", "く → こ · 意向用未然形")
+    ]
+  },
+  ka: {
+    units: [verb("か", "未然形")],
+    note: "「書く」先变成「書か」。此处可以直接接否定助动词「ない」，也可以接使役助动词「せる」。",
+    options: [
+      choice("せる", "接入使役助动词", "caus", "＋せる · 使役"),
+      choice("ない", "接入否定助动词", "directNai", "＋ない · 否定")
+    ]
+  },
+  ki: {
+    units: [verb("き", "连用形")],
+    note: "「書き」是连用形，可以接礼貌助动词「ます」。这是另一条较短的演示分支。",
+    options: [choice("ます", "礼貌表达", "kiMasu", "＋ます · 礼貌")]
+  },
+  kiMasu: { units: [verb("き", "连用形"), unit("礼貌助动词", ["ます"])], note: "得到「書きます」。可返回上一层尝试其他分支。" },
+  ke: {
+    units: [verb("け", "假定形")],
+    note: "假定形「書け」后接「ば」，形成「書けば」。",
+    options: [choice("ば", "假定接续", "keBa", "＋ば · 假定")]
+  },
+  keBa: { units: [verb("け", "假定形"), unit("接续助词", ["ば"])], note: "得到「書けば」。" },
+  ko: {
+    units: [verb("こ", "未然形")],
+    note: "五段动词的意向表达可以由「書こ」加「う」形成。",
+    options: [choice("う", "意向助动词", "koU", "＋う · 意向")]
+  },
+  koU: { units: [verb("こ", "未然形"), unit("意向助动词", ["う"])], note: "得到「書こう」。" },
+  caus: {
+    units: [verb("か", "未然形"), causative(true)],
+    note: "「せる」也是会活用的助动词。为了接「られる」，先将「せる」变成未然形「せ」。",
+    options: [choice("∅", "去掉「る」→ せ", "causStem", "せる → せ · 使役未然形")]
+  },
+  causStem: {
+    units: [verb("か", "未然形"), causative(false)],
+    note: "「書かせ」可以接被动助动词「られる」，形成使役被动结构。",
+    options: [choice("られる", "被动助动词", "passive", "＋られる · 使役被动")]
+  },
+  passive: {
+    units: [verb("か", "未然形"), causative(false), passive(true)],
+    note: "「書かせられる」是使役被动形式。后面接愿望「たい」之前，先变成连用形「られ」。",
+    options: [choice("∅", "去掉「る」→ られ", "passiveStem", "られる → られ · 连用形")]
+  },
+  passiveStem: {
+    units: [verb("か", "未然形"), causative(false), passive(false)],
+    note: "被动助动词「られる」的连用形「られ」可以接愿望助动词「たい」。",
+    options: [choice("たい", "愿望助动词", "tai", "＋たい · 愿望")]
+  },
+  tai: {
+    units: [verb("か", "未然形"), causative(false), passive(false), wish("い")],
+    note: "「たい」按形容词型活用。注意这里拆成「た」「い」，点击活用尾「い」查看变化。",
+    options: [
+      choice("く", "连用形 · い → く", "taku", "たい → たく · 连用形"),
+      choice("かっ", "连用形 · い → かっ", "takat", "たい → たかっ · 连用形")
+    ]
+  },
+  takat: {
+    units: [verb("か", "未然形"), causative(false), passive(false), wish("かっ")],
+    note: "「たかっ」可以直接接过去助动词「た」，表示过去的愿望。",
+    options: [choice("た", "过去助动词", "takatPast", "＋た · 过去")]
+  },
+  takatPast: {
+    units: [verb("か", "未然形"), causative(false), passive(false), wish("かっ"), past()],
+    note: "得到「書かせられたかった」，表示过去曾想被要求去写。"
+  },
+  taku: {
+    units: [verb("か", "未然形"), causative(false), passive(false), wish("く")],
+    note: "「たい」的「い」变成「く」，形成「たく」，随后可以接「ない」。",
+    options: [choice("ない", "愿望的否定", "wishNai", "＋ない · 愿望否定")]
+  },
+  wishNai: {
+    units: [verb("か", "未然形"), causative(false), passive(false), wish("く"), negative("い", false)],
+    note: "「たくない」中的「ない」按照学校文法通常分析为补助形容词；它与直接接动词未然形的否定助动词「ない」不同，但都呈现形容词式活用。",
+    options: [
+      choice("かっ", "连用形 · い → かっ", "wishNakatt", "ない → なかっ · 连用形"),
+      choice("く", "连用形 · い → く", "wishNaku", "ない → なく · 连用形")
+    ]
+  },
+  wishNaku: {
+    units: [verb("か", "未然形"), causative(false), passive(false), wish("く"), negative("く", false)],
+    note: "「ない」的「い」变成「く」，可以继续接「て」。",
+    options: [choice("て", "接续助词", "wishNakute", "＋て · 接续")]
+  },
+  wishNakute: {
+    units: [verb("か", "未然形"), causative(false), passive(false), wish("く"), negative("く", false), unit("接续助词", ["て"])],
+    note: "得到「書かせられたくなくて」。"
+  },
+  wishNakatt: {
+    units: [verb("か", "未然形"), causative(false), passive(false), wish("く"), negative("かっ", false)],
+    note: "你关心的那一步：严格显示为「い → かっ」，保留同一语法单位中的「な」。接下来可以接过去助动词「た」。",
+    options: [choice("た", "过去助动词", "wishPast", "＋た · 过去")]
+  },
+  wishPast: {
+    units: [verb("か", "未然形"), causative(false), passive(false), wish("く"), negative("かっ", false), past()],
+    note: "「書かせられたくなかった」表示过去不愿意被要求去写。再接推定助动词「らしい」。",
+    options: [choice("らしい", "推定助动词", "long", "＋らしい · 推定")]
+  },
+  long: {
+    units: [verb("か", "未然形"), causative(false), passive(false), wish("く"), negative("かっ", false), past(), inference()],
+    note: "「書かせられたくなかったらしい」：看来某人当时不愿被迫写。长路径完成；可点击历史记录返回任意一步。"
+  },
+  directNai: {
+    units: [verb("か", "未然形"), negative("い", true)],
+    note: "直接接动词未然形「書か」的「ない」是表示否定的助动词。也可以继续点击「い」变成「かっ」。",
+    options: [
+      choice("かっ", "连用形 · い → かっ", "directNakatt", "ない → なかっ · 连用形"),
+      choice("く", "连用形 · い → く", "directNaku", "ない → なく · 连用形")
+    ]
+  },
+  directNakatt: {
+    units: [verb("か", "未然形"), negative("かっ", true)],
+    note: "「ない」的末尾「い」变为「かっ」，保持「な」不变。",
+    options: [choice("た", "过去助动词", "directPast", "＋た · 过去")]
+  },
+  directPast: { units: [verb("か", "未然形"), negative("かっ", true), past()], note: "得到「書かなかった」。" },
+  directNaku: {
+    units: [verb("か", "未然形"), negative("く", true)],
+    note: "「ない」的连用形「なく」可以接「て」。",
+    options: [choice("て", "接续助词", "directNakute", "＋て · 接续")]
+  },
+  directNakute: {
+    units: [verb("か", "未然形"), negative("く", true), unit("接续助词", ["て"])],
+    note: "得到「書かなくて」。"
+  }
+};
+
+const longRoute = ["base", "ka", "caus", "causStem", "passive", "passiveStem", "tai", "taku", "wishNai", "wishNakatt", "wishPast", "long"];
+let history = [{ id: "base", change: "書く · 基本形" }];
+let expanded = false;
+let selectedInfo = "";
+const current = () => scenes[history[history.length - 1].id];
+const written = (scene) => scene.units.map((u) => u.parts.join("")).join("");
+
+function make(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+function advance(option) {
+  history.push({ id: option.target, change: option.change });
+  selectedInfo = "";
+  expanded = false;
+  render(true);
+}
+function moveTo(index) {
+  history = history.slice(0, index + 1);
+  selectedInfo = "";
+  expanded = false;
+  render(true);
+}
+function render(scrollRight) {
+  const scene = current();
+  const chain = document.getElementById("chain");
+  chain.replaceChildren();
+  document.getElementById("form").textContent = written(scene);
+  document.getElementById("step-count").textContent = "· " + (history.length - 1) + " 步";
+  document.getElementById("explanation").textContent = selectedInfo || scene.note;
+  document.getElementById("rule-change").textContent = history[history.length - 1].change;
+  document.getElementById("back").disabled = history.length === 1;
+
+  scene.units.forEach((u, ui) => {
+    if (ui > 0) chain.appendChild(make("span", "connector"));
+    const box = make("div", "unit");
+    box.appendChild(make("div", "unit-name", u.name));
+    const row = make("div", "pieces");
+    u.parts.forEach((part, pi) => {
+      const focus = ui === scene.units.length - 1 && pi === u.parts.length - 1 && !!scene.options?.length;
+      const button = make("button", "piece" + (focus ? " is-focus" : ""), part);
+      button.type = "button";
+      button.title = focus ? "点击展开后续候选" : "点击查看所属语法单位";
+      button.setAttribute("aria-expanded", String(focus && expanded));
+      button.addEventListener("click", () => {
+        if (focus) {
+          expanded = !expanded;
+          selectedInfo = "";
+        } else {
+          selectedInfo = "「" + part + "」属于「" + u.name + "」。本次原型仅从红色节点展开下一步；可以通过下方历史回退。";
+        }
+        render(false);
+      });
+      row.appendChild(button);
+    });
+    box.appendChild(row);
+    chain.appendChild(box);
+  });
+
+  if (scene.options?.length) {
+    chain.appendChild(make("span", "connector"));
+    if (expanded) {
+      const dock = make("div", "choice-wrap");
+      dock.appendChild(make("div", "choice-label", "尚未选择 · 半透明候选"));
+      const choices = make("div", "choices");
+      scene.options.forEach((option) => {
+        const candidate = make("button", "choice");
+        candidate.type = "button";
+        candidate.appendChild(make("strong", "", option.text));
+        candidate.appendChild(make("small", "", option.desc));
+        candidate.title = option.change;
+        candidate.addEventListener("click", () => advance(option));
+        choices.appendChild(candidate);
+      });
+      dock.appendChild(choices);
+      chain.appendChild(dock);
+    } else {
+      chain.appendChild(make("div", "invitation", "点击红色节点，展开接续候选 →"));
+    }
+  } else {
+    chain.appendChild(make("div", "invitation", "这条演示路径已结束"));
+  }
+
+  const trail = document.getElementById("trail");
+  trail.replaceChildren();
+  history.forEach((entry, index) => {
+    const button = make("button", index === history.length - 1 ? "current" : "", (index === 0 ? "起点" : index + ". ") + entry.change);
+    button.type = "button";
+    button.title = "回到这一步";
+    button.addEventListener("click", () => moveTo(index));
+    trail.appendChild(button);
+  });
+  if (scrollRight) {
+    requestAnimationFrame(() => {
+      const board = document.getElementById("board");
+      board.scrollLeft = board.scrollWidth;
+    });
+  }
+}
+
+if (typeof document !== "undefined") {
+  document.getElementById("back").addEventListener("click", () => { if (history.length > 1) moveTo(history.length - 2); });
+  document.getElementById("reset").addEventListener("click", () => moveTo(0));
+  document.getElementById("full").addEventListener("click", () => {
+    history = longRoute.map((id, index) => {
+      const previous = scenes[longRoute[index - 1]];
+      const chosen = previous?.options?.find((x) => x.target === id);
+      return { id, change: chosen ? chosen.change : "書く · 基本形" };
+    });
+    expanded = false;
+    selectedInfo = "";
+    render(true);
+  });
+  render(false);
+}
+</script>
+</body>
+</html>
