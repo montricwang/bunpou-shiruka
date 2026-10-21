@@ -1,953 +1,232 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>形态链实验｜文法？知るか！</title>
-  <style>
-    :root {
-      color-scheme: light;
-      --bg: #f5f3ed;
-      --paper: #fffefa;
-      --ink: #293238;
-      --muted: #687577;
-      --line: #dcded8;
-      --accent: #ac4934;
-      --accent-bg: #fff0e9;
-      --soft: #eeefe9;
-      font-family: "Segoe UI", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
-    }
-    * { box-sizing: border-box; }
-    body { margin: 0; background: var(--bg); color: var(--ink); }
-    button { font: inherit; cursor: pointer; }
-    button:focus-visible { outline: 3px solid #6b99c8; outline-offset: 3px; }
-    .wrap { max-width: 1240px; margin: 0 auto; padding: 42px 32px 80px; }
-    .topline { display: flex; align-items: center; gap: 16px; justify-content: space-between; }
-    .brand { font-size: 16px; font-weight: 700; letter-spacing: .025em; }
-    .tag { font-size: 11px; color: var(--muted); border: 1px solid var(--line); padding: 6px 10px; border-radius: 24px; }
-    .intro { margin: 70px 0 28px; }
-    .kicker { color: var(--accent); font-size: 12px; letter-spacing: .15em; font-weight: 700; }
-    h1 { font-size: clamp(30px, 5vw, 54px); font-weight: 650; letter-spacing: -.035em; margin: 14px 0 16px; }
-    .intro p { color: var(--muted); line-height: 1.8; margin: 0; max-width: 730px; }
-    .summary { display: flex; gap: 24px; justify-content: space-between; align-items: end; margin: 40px 0 22px; flex-wrap: wrap; }
-    .label { color: var(--muted); font-size: 12px; letter-spacing: .05em; }
-    output { display: block; margin-top: 9px; font-size: clamp(26px, 3.1vw, 41px); line-height: 1.4; font-weight: 580; overflow-wrap: anywhere; font-family: "Yu Gothic", "Noto Sans JP", sans-serif; }
-    .controls { display: flex; gap: 9px; flex-wrap: wrap; }
-    .controls button { background: var(--paper); border: 1px solid var(--line); padding: 10px 14px; border-radius: 9px; color: var(--ink); }
-    .controls button:hover:not(:disabled) { border-color: var(--accent); }
-    .controls button:disabled { opacity: .4; cursor: not-allowed; }
-    .controls .primary { background: var(--ink); color: white; border-color: var(--ink); }
-    .board { padding: 46px 28px 44px; border: 1px solid var(--line); border-radius: 18px; min-height: 230px; overflow-x: auto; background-color: var(--paper); background-image: radial-gradient(#cbd0cd 0.6px, transparent 0.7px); background-size: 19px 19px; }
-    .chain { display: flex; align-items: center; width: max-content; min-width: 100%; gap: 0; padding-right: 10px; }
-    .unit { padding: 13px 13px 11px; border: 1px solid #c9ceca; border-radius: 12px; background: rgba(255,255,255,.96); min-height: 104px; }
-    .unit-name { font-size: 11px; color: var(--muted); margin: 0 0 12px; white-space: nowrap; }
-    .pieces { display: flex; gap: 5px; align-items: center; }
-    .piece { border: 1px solid #d2d6d3; color: var(--ink); background: #f8f9f6; border-radius: 8px; min-width: 46px; height: 48px; padding: 0 10px; font: 600 25px/1 "Yu Gothic", "Noto Sans JP", sans-serif; }
-    .piece:hover { border-color: var(--accent); }
-    .piece.is-focus { border: 1.5px solid var(--accent); color: var(--accent); background: var(--accent-bg); box-shadow: 0 0 0 3px rgba(172,73,52,.08); }
-    .connector { display: flex; align-items: center; width: 42px; flex: 0 0 42px; justify-content: center; }
-    .connector:before { content: ""; height: 1px; width: 32px; background: #aeb8b1; }
-    .connector:after { content: ""; width: 6px; height: 6px; border-top: 1.5px solid #88958c; border-right: 1.5px solid #88958c; transform: rotate(45deg); margin-left: -8px; }
-    .choice-wrap { border-left: 1px dashed #bdc3bf; padding-left: 16px; margin-left: 8px; display: flex; flex-direction: column; gap: 9px; }
-    .choice-label { font-size: 11px; color: var(--muted); white-space: nowrap; }
-    .choices { display: flex; flex-wrap: wrap; max-width: 380px; gap: 9px; }
-    .choice { text-align: left; border: 1.5px dashed #c9bcb5; color: var(--muted); opacity: .65; background: #fef7f1; padding: 10px 13px; border-radius: 11px; min-width: 88px; transition: opacity .16s, transform .16s, border-color .16s; }
-    .choice:hover, .choice:focus-visible { opacity: 1; border-color: var(--accent); transform: translateY(-2px); }
-    .choice strong { display: block; font-size: 20px; color: var(--accent); font-family: "Yu Gothic", sans-serif; }
-    .choice small { display: block; font-size: 11px; margin-top: 5px; max-width: 140px; line-height: 1.5; }
-    .invitation { color: var(--muted); font-size: 13px; white-space: nowrap; background: rgba(255,255,255,.84); padding: 12px 14px; border-radius: 8px; }
-    .details { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 20px; margin-top: 20px; }
-    .panel { border: 1px solid var(--line); background: var(--paper); border-radius: 14px; padding: 23px 25px; }
-    h2 { margin: 0 0 12px; font-size: 15px; font-weight: 650; }
-    .panel p { font-size: 13px; color: var(--muted); line-height: 1.9; margin: 0; }
-    #rule-change { display: inline-block; font: 600 15px/1.6 "Noto Sans JP", sans-serif; color: var(--accent); background: var(--accent-bg); padding: 6px 11px; border-radius: 7px; margin: 6px 0 13px; }
-    .trail { display: flex; gap: 6px; flex-wrap: wrap; }
-    .trail button { border: 1px solid var(--line); border-radius: 7px; padding: 6px 9px; background: var(--soft); font-size: 11px; color: var(--muted); }
-    .trail button.current { border-color: #cda396; background: var(--accent-bg); color: var(--accent); }
-    .footnote { color: var(--muted); font-size: 12px; line-height: 1.8; margin-top: 24px; }
-    .footnote a { color: var(--accent); }
-
-    .startbar { border: 1px solid var(--line); padding: 19px 22px 20px; border-radius: 14px; background: var(--paper); }
-    .startbar-top { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
-    .start-options { display: flex; flex-wrap: wrap; gap: 9px; }
-    .start-option { border: 1px solid var(--line); border-radius: 9px; padding: 10px 16px; background: #f9faf6; color: var(--ink); font-weight: 600; font-size: 16px; }
-    .start-option:hover, .start-option.active { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
-    .summary { margin-top: 32px; }
-    .unit { transition: border-color .12s ease; cursor: pointer; }
-    .unit.is-selected { border-color: #be8c7a; box-shadow: 0 0 0 2px rgba(172, 73, 52, .08); }
-    .unit-name { display: flex; align-items: center; gap: 8px; border: 0; background: transparent; text-align: left; padding: 1px 0 5px; cursor: pointer; font-family: inherit; }
-    .unit-name:hover { color: var(--accent); }
-    .unit-name::after { content: "↗"; opacity: .65; color: var(--accent); }
-    .choice-wrap.backward { border-left: 0; padding-left: 0; margin-left: 0; border-right: 1px dashed #bdc3bf; padding-right: 16px; margin-right: 8px; }
-    .connector.backward { transform: rotate(180deg); }
-    .gram-title, #grammar-title { font-size: 22px; margin: 15px 0 10px; }
-    .tabs { display: flex; gap: 6px; margin: 21px 0 15px; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
-    .tabs button { border: 0; background: none; color: var(--muted); padding: 7px 14px; border-radius: 7px; }
-    .tabs button[aria-selected="true"] { background: var(--accent-bg); color: var(--accent); font-weight: 650; }
-    .grammar-body { min-height: 120px; }
-    .grammar-row { display: flex; gap: 10px; padding: 10px 1px; border-bottom: 1px solid #eeefea; font-size: 13px; align-items: baseline; }
-    .grammar-row dt { width: 72px; flex: 0 0 72px; color: var(--muted); }
-    .grammar-row dd { margin: 0; flex: 1; color: var(--ink); line-height: 1.65; }
-    .grammar-source { font-size: 11px !important; margin-top: 15px !important; }
-    .panel h3 { color: var(--muted); font-size: 12px; margin: 28px 0 11px; }
-    .hint { margin-top: 8px; color: var(--muted); font-size: 11px; }
-    /* 三栏采用固定关系方向，不依赖图布局库。前接类别竖排，中间单位可折叠。 */
-    .explorer { display: grid; grid-template-columns: minmax(0, 1.04fr) minmax(290px, 1.32fr) minmax(0, 1.04fr); gap: 15px; align-items: stretch; }
-    .relation-panel, .focus-panel { border: 1px solid var(--line); border-radius: 16px; min-width: 0; background: var(--paper); padding: 22px 18px; }
-    .focus-panel { border-color: #cbb4a9; background: #fffdf9; box-shadow: 0 8px 28px rgba(68, 49, 39, .035); }
-    .region-heading { display: flex; flex-direction: column; align-items: start; gap: 8px; }
-    .eyebrow { font-size: 10px; letter-spacing: .12em; font-weight: 750; color: var(--accent); }
-    .region-heading h2 { margin: 0; font-size: 17px; }
-    .region-hint { margin: 11px 0 18px; color: var(--muted); font-size: 12px; line-height: 1.65; min-height: 38px; }
-    .relation-groups { display: flex; flex-direction: column; gap: 10px; }
-    .relation-group { border: 1px solid #e2e4de; border-radius: 11px; overflow: hidden; background: #fafbf8; }
-    .relation-group-button { display: flex; gap: 10px; align-items: center; width: 100%; border: 0; padding: 13px 12px; text-align: left; background: transparent; color: var(--ink); }
-    .relation-group-button:hover { background: #f4f4ef; }
-    .group-heading { display: grid; flex: 1; gap: 4px; min-width: 0; }
-    .group-heading strong { font-size: 13px; font-weight: 660; }
-    .group-heading small { color: var(--muted); line-height: 1.45; font-size: 11px; }
-    .group-count { font-size: 11px; color: var(--accent); background: var(--accent-bg); padding: 4px 7px; border-radius: 8px; }
-    .relation-group-button .fold-arrow { color: var(--muted); font-size: 15px; transition: transform .16s; }
-    .relation-group-button[aria-expanded="true"] .fold-arrow { transform: rotate(90deg); }
-    .relation-items { border-top: 1px solid #e7e9e3; padding: 7px; display: grid; gap: 7px; }
-    .relation-item { display: flex; flex-direction: column; gap: 5px; width: 100%; padding: 10px 11px; border-radius: 9px; border: 1px solid #e7e3db; text-align: left; background: #fff; }
-    .relation-item strong { font-size: 12px; font-weight: 650; color: var(--ink); }
-    .relation-item small { font-size: 11px; line-height: 1.55; color: var(--muted); }
-    .relation-item code { font-family: "Yu Gothic", "Noto Sans JP", sans-serif; font-size: 14px; color: var(--accent); }
-    button.relation-item { border-style: dashed; border-color: #c7aba0; cursor: pointer; }
-    button.relation-item:hover { background: var(--accent-bg); border-color: var(--accent); }
-    .relation-note { color: var(--muted); font-size: 12px; line-height: 1.7; margin: 4px 0; }
-    .focus-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 19px; padding: 18px; background: var(--accent-bg); border: 1px solid #d9b3a6; border-radius: 13px; color: var(--ink); width: 100%; text-align: left; }
-    .focus-toggle strong { display: block; font: 650 clamp(23px, 2.4vw, 34px)/1.4 "Yu Gothic", "Noto Sans JP", sans-serif; overflow-wrap: anywhere; }
-    .focus-toggle small { display: block; margin-top: 5px; color: var(--muted); font-size: 11px; }
-    .focus-chevron { flex: 0 0 auto; font-size: 19px; color: var(--accent); transition: transform .18s; }
-    .focus-toggle[aria-expanded="false"] .focus-chevron { transform: rotate(180deg); }
-    .focus-content { padding: 12px 2px 0; }
-    .focus-content[hidden] { display: none; }
-    .segment-label { font-size: 11px; color: var(--muted); margin: 10px 0; }
-    .focus-pieces { display: flex; flex-wrap: wrap; gap: 6px; }
-    .focus-pieces .piece { cursor: pointer; background: #fff; }
-    .focus-summary { color: var(--muted); font-size: 12px; line-height: 1.7; margin: 17px 0; }
-    .focus-panel .tabs { flex-wrap: wrap; }
-    .focus-panel .tabs button { padding: 7px 10px; }
-    .focus-panel .grammar-body { min-height: 80px; }
-    .focus-panel .grammar-row dt { flex-basis: 82px; width: 82px; }
-    .outgoing-option strong { color: var(--accent); font: 680 20px/1.2 "Yu Gothic", "Noto Sans JP", sans-serif; }
-    .history-section { margin-top: 34px; }
-    .history-heading { display: flex; justify-content: space-between; align-items: end; gap: 12px; margin-bottom: 14px; }
-    .history-heading h2 { font-size: 18px; margin: 7px 0 0; }
-    .board { padding: 25px 24px; min-height: 145px; }
-    .unit { min-height: 100px; }
-    .details { grid-template-columns: 1fr; margin-top: 12px; }
-    .details .panel { padding: 20px 24px; }
-    .details .panel h3 { margin-top: 14px; }
-    @media (max-width: 980px) {
-      .explorer { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); }
-      .relation-right { grid-column: 1 / -1; }
-      .relation-right .relation-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
-    }
-    @media (max-width: 700px) {
-      .explorer { grid-template-columns: minmax(0, 1fr); gap: 12px; }
-      .relation-right { grid-column: auto; }
-      .relation-right .relation-groups { display: flex; }
-      .relation-panel, .focus-panel { padding: 19px 16px; }
-      .region-hint { min-height: 0; margin-bottom: 12px; }
-      .history-heading { align-items: start; flex-direction: column; }
-    }
-    @media (max-width: 700px) {
-      .wrap { padding: 25px 16px 55px; }
-      .intro { margin: 42px 0 16px; }
-      .board { padding: 29px 16px; }
-      .details { grid-template-columns: 1fr; }
-      .unit { min-height: 95px; padding: 10px; }
-      .piece { min-width: 40px; height: 44px; font-size: 22px; }
-      .panel { padding: 19px; }
-    }
-    @media (prefers-reduced-motion: reduce) { .choice { transition: none; } }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>语法图谱实验 · 文法？知るか！</title>
+<style>
+:root{--bg:#f7f6f2;--paper:#fffefa;--ink:#293335;--muted:#7b8685;--line:#e2e5de;--red:#aa381e;--rose:#fff0e9;color-scheme:light;font-family:"Segoe UI","Noto Sans CJK SC","Microsoft YaHei",sans-serif}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink)}
+button{font:inherit;cursor:pointer}
+button:focus-visible{outline:2px solid var(--red);outline-offset:3px}
+main{max-width:1360px;margin:auto;padding:29px 34px 38px}
+header{display:flex;align-items:center;justify-content:space-between;gap:18px}
+.brand{font-size:17px;font-weight:700}
+.version{font-size:11px;letter-spacing:.04em;color:var(--muted);border:1px solid var(--line);border-radius:25px;padding:6px 11px}
+.intro{margin:74px 0 30px;display:flex;justify-content:space-between;align-items:flex-end;gap:22px;flex-wrap:wrap}
+.eyebrow{font-size:11px;color:var(--red);letter-spacing:.15em;font-weight:700}
+h1{font-size:clamp(26px,3.4vw,43px);font-weight:640;letter-spacing:-.03em;margin:10px 0}
+.intro p{font-size:13px;line-height:1.8;color:var(--muted);margin:0}
+.switch{display:flex;gap:4px;border:1px solid var(--line);background:#eeefeb;border-radius:11px;padding:4px}
+.switch button{border:0;background:none;color:var(--muted);font-size:14px;padding:10px 21px;border-radius:8px}
+.switch button[aria-pressed=true]{background:var(--paper);color:var(--ink);box-shadow:0 1px 7px #28383315;font-weight:650}
+.shell{border:1px solid var(--line);border-radius:18px;background:var(--paper);overflow:hidden}
+.tools{min-height:76px;display:flex;align-items:center;justify-content:space-between;padding:16px 23px;gap:16px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+.surface{display:flex;align-items:baseline;gap:14px}
+.surface small{font-size:11px;color:var(--muted)}
+output{font-size:clamp(20px,2.3vw,29px);font-family:"Yu Gothic","Noto Sans JP",sans-serif;font-weight:650;overflow-wrap:anywhere}
+.actions{display:flex;gap:9px}
+.actions button{border:1px solid var(--line);padding:8px 12px;color:var(--muted);font-size:12px;border-radius:8px;background:none}
+.actions button:hover:not(:disabled){border-color:var(--red);color:var(--red)}
+.actions button:disabled{opacity:.4;cursor:default}
+.stage{position:relative;overflow:auto;min-height:540px;background-image:radial-gradient(#d1d7d0 .8px,transparent .9px);background-size:20px 20px}
+#graph{display:block;height:540px}
+.edge{stroke:#b8c0bb;stroke-width:1.7;fill:none;stroke-dasharray:5 6}
+.edge.solid{stroke:var(--red);stroke-width:2.2;stroke-dasharray:none}
+.node{cursor:pointer}
+.node .shape{fill:#fffefa;stroke:#bcc4bd;stroke-width:1.4;rx:13}
+.node.ghost .shape{fill:#f8f9f5;stroke:#bac4c0;stroke-dasharray:5 5}
+.node.active .shape{fill:#fff4ef;stroke:#c59b8b;stroke-width:1.8}
+.node.root .shape{fill:var(--red);stroke:var(--red)}
+.node:hover .shape{stroke:var(--red);stroke-width:2}
+.node text{pointer-events:none;fill:var(--ink)}
+.node.root text{fill:white}
+.node.ghost text{opacity:.65}
+.node .mainlabel{font:650 22px "Yu Gothic","Noto Sans JP",sans-serif}
+.node .sublabel{font:11px "Segoe UI","Microsoft YaHei",sans-serif;fill:var(--muted)}
+.node.root .sublabel{fill:#ffffffb5}
+.node .piece{fill:#fff;stroke:#dfc9bf;rx:6}
+.node.root .piece{fill:#ffffff16;stroke:#ffffff88}
+.node .information{stroke:#bdc9c3;fill:#fffefa}
+.node.root .information{stroke:#ffffff80;fill:#ffffff20}
+.node .infoletter{font:700 10px "Segoe UI",sans-serif;fill:#7e8984}
+.node.root .infoletter{fill:white}
+.trace{border-top:1px solid var(--line);display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:49px;padding:11px 22px}
+.trace .hint{font-size:11px;color:var(--muted);margin-right:8px}
+.trace button{border:0;border-radius:7px;background:#f1efec;color:#71645e;padding:5px 9px;font-size:12px}
+.trace button:hover{background:var(--rose);color:var(--red)}
+.trace .arrow{font-size:12px;color:#a5ada8}
+.popover{position:absolute;z-index:5;right:20px;bottom:20px;width:min(320px,calc(100% - 40px));background:var(--paper);border:1px solid #e0beb2;border-radius:13px;padding:18px 20px;box-shadow:0 12px 36px #33333317}
+.popover[hidden]{display:none}
+.popover h2{font-size:17px;margin:0 24px 10px 0}
+.popover p{font-size:12px;color:#65716f;line-height:1.8;margin:0}
+.popover button{border:0;background:none;color:var(--muted);position:absolute;right:10px;top:9px;padding:6px}
+.foot{font-size:12px;line-height:1.8;color:var(--muted);margin:17px 3px}
+@media(max-width:680px){main{padding:21px 14px}.intro{margin:43px 0 23px}.tools{padding:13px}.stage{min-height:430px}#graph{height:430px}.trace{padding:11px 13px}}
+</style>
 </head>
 <body>
-  <main class="wrap">
-    <header class="topline"><div class="brand">文法？知るか！</div><span class="tag">形态链实验 · 003</span></header>
-    <section class="intro">
-      <div class="kicker">MORPHOLOGY PLAYGROUND</div>
-      <h1>把语法拆开，再接下去。</h1>
-      <p>从词类与活用体系查看接续条件，再把语法单位拆开，沿着形态链继续探索。候选选中后，下一层自动展开。</p>
-    </section>
-    <section class="startbar" aria-label="选择探索起点">
-      <div class="startbar-top"><span class="label">选择探索起点</span><span class="label">点击整个语法单位的标题，可以查看活用及前后接续</span></div>
-      <div class="start-options" id="starters"></div>
-    </section>
-    <section class="summary" aria-label="当前表达">
-      <div><div class="label">当前组成的完整形态 <span id="step-count"></span></div><output id="form" aria-live="polite">書く</output></div>
-      <div class="controls">
-        <button id="back" type="button">← 上一步</button>
-        <button id="reset" type="button">重置</button>
-        <button class="primary" id="full" type="button">查看完整长路径</button>
-      </div>
-    </section>
-    <section class="explorer" aria-label="语法接续关系">
-      <aside class="relation-panel relation-left" aria-label="前接条件">
-        <div class="region-heading"><span class="eyebrow">01 · BEFORE</span><h2>前面可以接什么</h2></div>
-        <p class="region-hint">按词类与活用类型归纳。展开类别查看具体形式。</p>
-        <div id="incoming" class="relation-groups"></div>
-      </aside>
-      <section class="focus-panel" aria-label="选中的语法单位">
-        <div class="region-heading"><span class="eyebrow">02 · FOCUS</span><h2>当前语法单位</h2></div>
-        <button type="button" class="focus-toggle" id="focus-toggle" aria-expanded="true" aria-controls="focus-content">
-          <span><strong id="focus-title">書く</strong><small id="focus-subtitle">五段动词</small></span>
-          <span class="focus-chevron" aria-hidden="true">⌃</span>
-        </button>
-        <div id="focus-content" class="focus-content">
-          <div class="segment-label">内部形态 · 点击片段了解构造</div>
-          <div id="focus-pieces" class="focus-pieces"></div>
-          <p id="grammar-summary" class="focus-summary"></p>
-          <div class="tabs" role="tablist" aria-label="语法信息">
-            <button type="button" data-tab="forms" role="tab">活用</button>
-            <button type="button" data-tab="before" role="tab">前接</button>
-            <button type="button" data-tab="after" role="tab">后接</button>
-          </div>
-          <div id="grammar-body" class="grammar-body"></div>
-          <p id="grammar-source" class="grammar-source"></p>
-        </div>
-      </section>
-      <aside class="relation-panel relation-right" aria-label="后接条件">
-        <div class="region-heading"><span class="eyebrow">03 · AFTER</span><h2>接下来怎样变化</h2></div>
-        <p class="region-hint">虚线是尚未选择的分支；点击后立即生成下一段。</p>
-        <div id="outgoing" class="relation-groups"></div>
-      </aside>
-    </section>
-    <section class="history-section" aria-label="已经生成的形态链">
-      <div class="history-heading"><div><span class="eyebrow">COMPOSITION</span><h2>形态构造路径</h2></div><span class="label">点击路径中的语法单位，可以回到中央查看它</span></div>
-      <div class="board" id="board"><div class="chain" id="chain"></div></div>
-      <div class="details">
-        <div class="panel">
-          <h2>当前形态变化</h2>
-          <div id="rule-change">辞書形</div>
-          <p id="explanation"></p>
-          <h3>探索历史</h3>
-          <div class="trail" id="trail"></div>
-        </div>
-      </div>
-    </section>
-    <p class="footnote">本页是结构与交互实验，并非完整接续词典。样本首先按用户整理的《日语.xlsx》「用言活用」「助动词活用」「助动词接续（总表）」等工作表录入，非穷尽关系。词形分割服务于可视化；语法分类需继续对照教材。长路径是示例，不代表公认的「最长词」。<br>另可参见：<a href="https://www.kyozai.jpf.go.jp/kyozai/material/BMA00076/ja/render.do" target="_blank" rel="noreferrer">日本国际交流基金 · 使役受身形</a>、<a href="https://www.kokugobunpou.com/%E5%8A%A9%E5%8B%95%E8%A9%9E/%E3%81%9F%E3%81%84-%E3%81%9F%E3%81%8C%E3%82%8B/" target="_blank" rel="noreferrer">たい的活用</a>、<a href="https://benesse.jp/kyouiku/teikitest/chu/japanese/japanese/c00484.html" target="_blank" rel="noreferrer">「ない」的词性辨析</a>。</p>
-  </main>
+<main>
+<header><div class="brand">文法？知るか！</div><span class="version">GRAPH EXPERIMENT · 004</span></header>
+<section class="intro">
+<div><div class="eyebrow">GRAMMAR GRAPH</div><h1>点开一条关系，继续探索。</h1><p>点击实节点出现候选，点击半透明节点展开下一层。小圆点提供简短语法说明。</p></div>
+<nav class="switch" aria-label="起点"><button data-mode="kaku" aria-pressed="true">書く</button><button data-mode="mai" aria-pressed="false">まい</button></nav>
+</section>
+<section class="shell">
+<div class="tools"><div class="surface"><small>当前构造</small><output id="surface">書く</output></div><div class="actions"><button id="back" type="button">← 返回</button><button id="reset" type="button">重置</button></div></div>
+<div class="stage" id="stage">
+<svg id="graph" role="img" aria-label="逐级展开的日语语法关系图"></svg>
+<aside class="popover" id="popover" hidden><button id="close" type="button" aria-label="关闭说明">✕</button><h2 id="info-title"></h2><p id="info-text"></p></aside>
+</div>
+<div class="trace" id="trace"></div>
+</section>
+<p class="foot">目前仅演示「書く」的词尾变化、否定接续与「まい」的前接分类。已选择的路径保持实线，其余仅显示当前一层候选。数据是少量语法样本，尚未建立完整规则库。</p>
+</main>
 <script>
 "use strict";
-
-// 一个语法单位可以包含多个视觉片段；身份 key 用来打开整个单位的详情。
-const unit = (name, parts, key = "other") => ({ name, parts, key });
-const verb = (ending, form) => unit("五段动词 · " + form, ["書", ending], "godan");
-const causative = (full) => unit("使役助动词 · " + (full ? "基本形" : "未然形"), full ? ["せ", "る"] : ["せ"], "seru");
-const passive = (full) => unit("被动助动词 · " + (full ? "基本形" : "连用形"), full ? ["られ", "る"] : ["られ"], "rareru");
-const wish = (ending) => unit("愿望助动词「たい」· " + (ending === "い" ? "基本形" : "连用形"), ["た", ending], "tai");
-const negative = (ending, direct) => unit((direct ? "否定助动词" : "补助形容词") + "「ない」· " + (ending === "い" ? "基本形" : "连用形"), ["な", ending], direct ? "naiAux" : "naiAdj");
-const past = () => unit("过去助动词", ["た"], "ta");
-const inference = () => unit("推定助动词", ["らしい"], "rashii");
-const choice = (text, desc, target, change) => ({ text, desc, target, change });
-
-// 仅保存样本路径，不在此原型中建立通用日语规则引擎。
-const scenes = {
-  base: {
-    units: [verb("く", "基本形")],
-    note: "「書」是词干，「く」是五段动词的活用词尾。先点击红色的「く」，查看可以走向哪些活用形。",
-    options: [
-      choice("か", "未然形 · く → か", "ka", "く → か · 未然形"),
-      choice("き", "连用形 · く → き", "ki", "く → き · 连用形"),
-      choice("け", "假定形 · く → け", "ke", "く → け · 假定形"),
-      choice("こ", "未然形 · く → こ", "ko", "く → こ · 意向用未然形")
-    ]
-  },
-  ka: {
-    units: [verb("か", "未然形")],
-    note: "「書く」先变成「書か」。此处可以直接接否定助动词「ない」，也可以接使役助动词「せる」。",
-    options: [
-      choice("せる", "接入使役助动词", "caus", "＋せる · 使役"),
-      choice("ない", "接入否定助动词", "directNai", "＋ない · 否定")
-    ]
-  },
-  ki: {
-    units: [verb("き", "连用形")],
-    note: "「書き」是连用形，可以接礼貌助动词「ます」。这是另一条较短的演示分支。",
-    options: [choice("ます", "礼貌表达", "kiMasu", "＋ます · 礼貌")]
-  },
-  kiMasu: { units: [verb("き", "连用形"), unit("礼貌助动词", ["ます"])], note: "得到「書きます」。可返回上一层尝试其他分支。" },
-  ke: {
-    units: [verb("け", "假定形")],
-    note: "假定形「書け」后接「ば」，形成「書けば」。",
-    options: [choice("ば", "假定接续", "keBa", "＋ば · 假定")]
-  },
-  keBa: { units: [verb("け", "假定形"), unit("接续助词", ["ば"])], note: "得到「書けば」。" },
-  ko: {
-    units: [verb("こ", "未然形")],
-    note: "五段动词的意向表达可以由「書こ」加「う」形成。",
-    options: [choice("う", "意向助动词", "koU", "＋う · 意向")]
-  },
-  koU: { units: [verb("こ", "未然形"), unit("意向助动词", ["う"])], note: "得到「書こう」。" },
-  caus: {
-    units: [verb("か", "未然形"), causative(true)],
-    note: "「せる」也是会活用的助动词。为了接「られる」，先将「せる」变成未然形「せ」。",
-    options: [choice("∅", "去掉「る」→ せ", "causStem", "せる → せ · 使役未然形")]
-  },
-  causStem: {
-    units: [verb("か", "未然形"), causative(false)],
-    note: "「書かせ」可以接被动助动词「られる」，形成使役被动结构。",
-    options: [choice("られる", "被动助动词", "passive", "＋られる · 使役被动")]
-  },
-  passive: {
-    units: [verb("か", "未然形"), causative(false), passive(true)],
-    note: "「書かせられる」是使役被动形式。后面接愿望「たい」之前，先变成连用形「られ」。",
-    options: [choice("∅", "去掉「る」→ られ", "passiveStem", "られる → られ · 连用形")]
-  },
-  passiveStem: {
-    units: [verb("か", "未然形"), causative(false), passive(false)],
-    note: "被动助动词「られる」的连用形「られ」可以接愿望助动词「たい」。",
-    options: [choice("たい", "愿望助动词", "tai", "＋たい · 愿望")]
-  },
-  tai: {
-    units: [verb("か", "未然形"), causative(false), passive(false), wish("い")],
-    note: "「たい」按形容词型活用。注意这里拆成「た」「い」，点击活用尾「い」查看变化。",
-    options: [
-      choice("く", "连用形 · い → く", "taku", "たい → たく · 连用形"),
-      choice("かっ", "连用形 · い → かっ", "takat", "たい → たかっ · 连用形")
-    ]
-  },
-  takat: {
-    units: [verb("か", "未然形"), causative(false), passive(false), wish("かっ")],
-    note: "「たかっ」可以直接接过去助动词「た」，表示过去的愿望。",
-    options: [choice("た", "过去助动词", "takatPast", "＋た · 过去")]
-  },
-  takatPast: {
-    units: [verb("か", "未然形"), causative(false), passive(false), wish("かっ"), past()],
-    note: "得到「書かせられたかった」，表示过去曾想被要求去写。"
-  },
-  taku: {
-    units: [verb("か", "未然形"), causative(false), passive(false), wish("く")],
-    note: "「たい」的「い」变成「く」，形成「たく」，随后可以接「ない」。",
-    options: [choice("ない", "愿望的否定", "wishNai", "＋ない · 愿望否定")]
-  },
-  wishNai: {
-    units: [verb("か", "未然形"), causative(false), passive(false), wish("く"), negative("い", false)],
-    note: "「たくない」中的「ない」按照学校文法通常分析为补助形容词；它与直接接动词未然形的否定助动词「ない」不同，但都呈现形容词式活用。",
-    options: [
-      choice("かっ", "连用形 · い → かっ", "wishNakatt", "ない → なかっ · 连用形"),
-      choice("く", "连用形 · い → く", "wishNaku", "ない → なく · 连用形")
-    ]
-  },
-  wishNaku: {
-    units: [verb("か", "未然形"), causative(false), passive(false), wish("く"), negative("く", false)],
-    note: "「ない」的「い」变成「く」，可以继续接「て」。",
-    options: [choice("て", "接续助词", "wishNakute", "＋て · 接续")]
-  },
-  wishNakute: {
-    units: [verb("か", "未然形"), causative(false), passive(false), wish("く"), negative("く", false), unit("接续助词", ["て"])],
-    note: "得到「書かせられたくなくて」。"
-  },
-  wishNakatt: {
-    units: [verb("か", "未然形"), causative(false), passive(false), wish("く"), negative("かっ", false)],
-    note: "你关心的那一步：严格显示为「い → かっ」，保留同一语法单位中的「な」。接下来可以接过去助动词「た」。",
-    options: [choice("た", "过去助动词", "wishPast", "＋た · 过去")]
-  },
-  wishPast: {
-    units: [verb("か", "未然形"), causative(false), passive(false), wish("く"), negative("かっ", false), past()],
-    note: "「書かせられたくなかった」表示过去不愿意被要求去写。再接推定助动词「らしい」。",
-    options: [choice("らしい", "推定助动词", "long", "＋らしい · 推定")]
-  },
-  long: {
-    units: [verb("か", "未然形"), causative(false), passive(false), wish("く"), negative("かっ", false), past(), inference()],
-    note: "「書かせられたくなかったらしい」：看来某人当时不愿被迫写。长路径完成；可点击历史记录返回任意一步。"
-  },
-  directNai: {
-    units: [verb("か", "未然形"), negative("い", true)],
-    note: "直接接动词未然形「書か」的「ない」是表示否定的助动词。也可以继续点击「い」变成「かっ」。",
-    options: [
-      choice("かっ", "连用形 · い → かっ", "directNakatt", "ない → なかっ · 连用形"),
-      choice("く", "连用形 · い → く", "directNaku", "ない → なく · 连用形")
-    ]
-  },
-  directNakatt: {
-    units: [verb("か", "未然形"), negative("かっ", true)],
-    note: "「ない」的末尾「い」变为「かっ」，保持「な」不变。",
-    options: [choice("た", "过去助动词", "directPast", "＋た · 过去")]
-  },
-  directPast: { units: [verb("か", "未然形"), negative("かっ", true), past()], note: "得到「書かなかった」。" },
-  directNaku: {
-    units: [verb("か", "未然形"), negative("く", true)],
-    note: "「ない」的连用形「なく」可以接「て」。",
-    options: [choice("て", "接续助词", "directNakute", "＋て · 接续")]
-  },
-  directNakute: {
-    units: [verb("か", "未然形"), negative("く", true), unit("接续助词", ["て"])],
-    note: "得到「書かなくて」。"
-  }
+const graphs = {
+ kaku: { direction:1, root:"kaku", nodes:{
+  kaku:{label:"書く",sub:"五段动词 · 基本形",pieces:["書","く"],form:"書く",info:"「書」是词干，「く」是活用词尾。点击展开不同活用形。",children:["ka","ki","ke","ko"]},
+  ka:{label:"か",sub:"未然形 · く → か",form:"書か",info:"「書く」的「く」变为「か」，可以接否定助动词「ない」等。",children:["nai","seru"]},
+  ki:{label:"き",sub:"连用形 · く → き",form:"書き",info:"五段动词的连用形，可接「ます」等。",children:["masu"]},
+  ke:{label:"け",sub:"假定形 · く → け",form:"書け",info:"假定形「書け」后接「ば」。",children:["ba"]},
+  ko:{label:"こ",sub:"未然形 · く → こ",form:"書こ",info:"意向表达中的未然形；接「う」后组成「書こう」。",children:["u"]},
+  nai:{label:"ない",sub:"否定助动词",pieces:["な","い"],form:"書かない",info:"「ない」是一个助动词，拆成「な｜い」展示活用。「い」可变为「かっ」「く」。",children:["katt","naku"]},
+  seru:{label:"せる",sub:"使役助动词",pieces:["せ","る"],form:"書かせる",info:"五段动词未然形「書か」接使役助动词「せる」。本例暂不继续。",children:[]},
+  katt:{label:"かっ",sub:"い → かっ · 连用形",form:"書かなかっ",info:"「な」保留，词尾「い」变化为「かっ」，为接过去助动词「た」做准备。",children:["ta"]},
+  naku:{label:"く",sub:"い → く · 连用形",form:"書かなく",info:"「ない」的连用形「なく」可以接「て」。",children:["te"]},
+  ta:{label:"た",sub:"过去助动词",form:"書かなかった",info:"拼接结果：書｜か｜な｜かっ｜た。",children:[]},
+  te:{label:"て",sub:"接续助词",form:"書かなくて",info:"「なく」后接「て」，得到「書かなくて」。",children:[]},
+  masu:{label:"ます",sub:"礼貌助动词",form:"書きます",info:"动词连用形后接「ます」。",children:[]},
+  ba:{label:"ば",sub:"接续助词",form:"書けば",info:"假定形后接「ば」。",children:[]},
+  u:{label:"う",sub:"意向助动词",form:"書こう",info:"意向表达「書こう」。",children:[]}
+ }},
+ mai: { direction:-1, root:"mai", nodes:{
+  mai:{label:"まい",sub:"否定意志・否定推量",form:"まい",info:"向左逐级探索「まい」允许的前接条件。此处根据样本分别列出动词和助动词。",children:["verb","aux"]},
+  verb:{label:"动词",sub:"先按活用类别分组",info:"五段动词、一段动词接「まい」时，样本中的要求不同。",children:["godan","ichidan"]},
+  aux:{label:"助动词",sub:"按各自活用形式",info:"部分助动词也能接「まい」。本例只展示使役助动词。",children:["seru"]},
+  godan:{label:"五段动词",sub:"活用类别",info:"本样本中，五段动词使用终止形接「まい」。",children:["terminal"]},
+  ichidan:{label:"一段动词",sub:"活用类别",info:"本样本中，一段动词可用未然形接「まい」。",children:["irrealis"]},
+  seru:{label:"使役「せる」",sub:"助动词类别",info:"使役助动词的未然形「せ」可接「まい」。",children:["seruIrrealis"]},
+  terminal:{label:"终止形",sub:"所需活用形",info:"例如五段动词「書く」的终止形。",children:["kakumai"]},
+  irrealis:{label:"未然形",sub:"所需活用形",info:"例如一段动词「食べる」的未然形「食べ」。",children:["tabemai"]},
+  seruIrrealis:{label:"未然形",sub:"所需活用形",info:"使役「せる」的未然形「せ」。",children:["kakasemai"]},
+  kakumai:{label:"書く",sub:"词例 · 终止形",form:"書くまい",info:"書く（五段动词终止形）＋まい。",children:[]},
+  tabemai:{label:"食べ",sub:"词例 · 未然形",form:"食べまい",info:"食べ（一段动词未然形）＋まい。",children:[]},
+  kakasemai:{label:"書かせ",sub:"词例 · 未然形",form:"書かせまい",info:"使役助动词「せる」的未然形接「まい」。",children:[]}
+ }}
 };
-
-// 以下为 Excel 接续表中的少量示例，不把这些候选当作穷尽的接续规则。
-Object.assign(scenes, {
-  taberu: { units: [unit("下一段动词 · 基本形", ["食べ", "る"], "ichidan")],
-    note: "下一段动词「食べる」可以去掉「る」，得到未然形或连用形的「食べ」。",
-    options: [choice("∅", "る → ∅ · 未然/连用", "tabeStem", "る → ∅ · 一段动词活用")] },
-  tabeStem: { units: [unit("下一段动词 · 未然/连用形", ["食べ"], "ichidan")],
-    note: "「食べ」既可以作为未然形接「ない」，也可以作为连用形接「ます」。选择接续时根据后接成分确定形态名称。",
-    options: [
-      choice("ない", "接在未然形之后", "tabenai", "＋ない · 否定"),
-      choice("ます", "接在连用形之后", "tabemasu", "＋ます · 礼貌"),
-      choice("まい", "接在未然形之后", "tabemai", "＋まい · 否定意志/推量")
-    ] },
-  tabenai: { units: [unit("下一段动词 · 未然形", ["食べ"], "ichidan"), negative("い", true)],
-    note: "得到「食べない」。点击整个「ない」单位查看活用及前接规则。",
-    options: [choice("かっ", "い → かっ · 连用", "tabenakatt", "い → かっ · 连用形")] },
-  tabenakatt: { units: [unit("下一段动词 · 未然形", ["食べ"], "ichidan"), negative("かっ", true)],
-    note: "「食べなかっ」可以接过去助动词「た」。",
-    options: [choice("た", "过去助动词", "tabenakatta", "＋た · 过去")] },
-  tabenakatta: { units: [unit("下一段动词 · 未然形", ["食べ"], "ichidan"), negative("かっ", true), past()],
-    note: "得到「食べなかった」。" },
-  tabemasu: { units: [unit("下一段动词 · 连用形", ["食べ"], "ichidan"), unit("礼貌助动词", ["ます"], "masu")],
-    note: "得到「食べます」。" },
-  tabemai: { units: [unit("下一段动词 · 未然形", ["食べ"], "ichidan"), unit("否定推量助动词", ["まい"], "mai")],
-    note: "得到「食べまい」。示例采用 Excel 所列的一段动词未然形接「まい」。" },
-  takai: { units: [unit("形容词 · 基本形", ["高", "い"], "adjective")],
-    note: "「高い」是形容词，活用尾「い」可变为「く」「かっ」「けれ」。",
-    options: [
-      choice("く", "连用形 · い → く", "takaku", "い → く · 连用形"),
-      choice("かっ", "连用形 · い → かっ", "takakatt", "い → かっ · 连用形"),
-      choice("けれ", "假定形 · い → けれ", "takakere", "い → けれ · 假定形")
-    ] },
-  takaku: { units: [unit("形容词 · 连用形", ["高", "く"], "adjective")],
-    note: "连用形「高く」可接「て」。",
-    options: [choice("て", "接续助词", "takakute", "＋て · 接续")] },
-  takakute: { units: [unit("形容词 · 连用形", ["高", "く"], "adjective"), unit("接续助词", ["て"], "particle")], note: "得到「高くて」。" },
-  takakatt: { units: [unit("形容词 · 连用形", ["高", "かっ"], "adjective")],
-    note: "连用形「高かっ」可接过去助动词「た」。",
-    options: [choice("た", "过去助动词", "takakatta", "＋た · 过去")] },
-  takakatta: { units: [unit("形容词 · 连用形", ["高", "かっ"], "adjective"), past()], note: "得到「高かった」。" },
-  takakere: { units: [unit("形容词 · 假定形", ["高", "けれ"], "adjective")],
-    note: "假定形「高けれ」可接「ば」。",
-    options: [choice("ば", "接续助词", "takakereba", "＋ば · 假定")] },
-  takakereba: { units: [unit("形容词 · 假定形", ["高", "けれ"], "adjective"), unit("接续助词", ["ば"], "particle")], note: "得到「高ければ」。" },
-  shizukada: { units: [unit("形容动词 · 基本形", ["静か", "だ"], "adjectival")],
-    note: "「静かだ」是形容动词。其连体形为「静かな」，连用形可以是「静かで」「静かだっ」等。",
-    options: [
-      choice("な", "连体形 · だ → な", "shizukana", "だ → な · 连体形"),
-      choice("で", "连用形 · だ → で", "shizukade", "だ → で · 连用形"),
-      choice("だっ", "连用形 · だ → だっ", "shizukadatt", "だ → だっ · 连用形"),
-      choice("なら", "假定形 · だ → なら", "shizukanara", "だ → なら · 假定形")
-    ] },
-  shizukana: { units: [unit("形容动词 · 连体形", ["静か", "な"], "adjectival")],
-    note: "连体形可以修饰体言，例如「静かな人」。",
-    options: [choice("人", "体言", "shizukanahito", "＋人 · 修饰体言")] },
-  shizukanahito: { units: [unit("形容动词 · 连体形", ["静か", "な"], "adjectival"), unit("体言", ["人"], "noun")], note: "得到「静かな人」。" },
-  shizukade: { units: [unit("形容动词 · 连用形", ["静か", "で"], "adjectival")], note: "得到连用形「静かで」，可继续接其他成分。本样本到此为止。" },
-  shizukadatt: { units: [unit("形容动词 · 连用形", ["静か", "だっ"], "adjectival")],
-    note: "连用形「静かだっ」可接过去助动词「た」。",
-    options: [choice("た", "过去助动词", "shizukadatta", "＋た · 过去")] },
-  shizukadatta: { units: [unit("形容动词 · 连用形", ["静か", "だっ"], "adjectival"), past()], note: "得到「静かだった」。" },
-  shizukanara: { units: [unit("形容动词 · 假定形", ["静か", "なら"], "adjectival")],
-    note: "得到假定形「静かなら」。" },
-  mai: { direction: "before", units: [unit("否定意志/推量助动词", ["まい"], "mai")],
-    note: "这次从「まい」反过来看前接。按照 Excel，五段动词可接终止形，一段动词可接未然形；使役助动词也有对应接续。",
-    options: [
-      choice("書く", "五段动词 · 终止形", "kakumai", "前接：五段动词终止形"),
-      choice("食べ", "一段动词 · 未然形", "tabemai", "前接：一段动词未然形"),
-      choice("書かせ", "使役助动词 · 未然形", "kakasemai", "前接：使役助动词未然形")
-    ] },
-  kakumai: { units: [verb("く", "终止形"), unit("否定意志/推量助动词", ["まい"], "mai")],
-    note: "得到「書くまい」：五段动词终止形＋まい。" },
-  kakasemai: { units: [verb("か", "未然形"), causative(false), unit("否定意志/推量助动词", ["まい"], "mai")],
-    note: "得到「書かせまい」：使役助动词「せる」的未然形＋まい。" }
+let mode="kaku";
+let path=["kaku"];
+let depthShown=0;
+const svg=document.getElementById("graph");
+const stage=document.getElementById("stage");
+const popover=document.getElementById("popover");
+const S="http://www.w3.org/2000/svg", W=166, H=88, DX=217, DY=116;
+function data(){return graphs[mode]}
+function node(id){return data().nodes[id]}
+function el(tag,attrs={},txt){
+ const e=document.createElementNS(S,tag);
+ for(const [k,v] of Object.entries(attrs))e.setAttribute(k,String(v));
+ if(txt!==undefined)e.textContent=txt;
+ return e;
+}
+function clickNode(id,depth){
+ const item=node(id);
+ if(path[depth]===id) depthShown=depthShown>depth?depth:(item.children.length?depth+1:depth);
+ else {path=path.slice(0,depth).concat(id);depthShown=item.children.length?depth+1:depth}
+ render();
+}
+function restart(next){
+ mode=next;path=[data().root];depthShown=0;render();
+}
+function showInfo(id){
+ const item=node(id);
+ document.getElementById("info-title").textContent=item.label;
+ document.getElementById("info-text").textContent=item.info;
+ popover.hidden=false;
+}
+function layout(){
+ const items=[{id:data().root,parent:null,depth:0,x:0,y:0,onPath:true}];
+ for(let depth=1;depth<=depthShown;depth++){
+  const parentId=path[depth-1];
+  const parent=items.find(a=>a.id===parentId&&a.depth===depth-1);
+  if(!parent)break;
+  const children=node(parentId).children;
+  children.forEach((id,index)=>items.push({id,parent:parentId,depth,x:depth*DX*data().direction,y:parent.y+(index-(children.length-1)/2)*DY,onPath:path[depth]===id}));
+ }
+ return items;
+}
+function nodeGraphic(n){
+ const item=node(n.id),kind=n.depth===0?"root":n.onPath?"active":"ghost";
+ const g=el("g",{class:"node "+kind,transform:"translate("+n.x+","+n.y+")",role:"button",tabindex:"0","aria-label":item.label+" "+item.sub});
+ g.appendChild(el("rect",{class:"shape",x:-W/2,y:-H/2,width:W,height:H}));
+ if(item.pieces){
+  const partW=42;
+  item.pieces.forEach((part,i)=>{
+   const px=(i-(item.pieces.length-1)/2)*49-partW/2;
+   g.appendChild(el("rect",{class:"piece",x:px,y:-25,width:partW,height:35}));
+   g.appendChild(el("text",{class:"mainlabel",x:px+partW/2,y:0,"text-anchor":"middle"},part));
+  });
+ } else g.appendChild(el("text",{class:"mainlabel",x:0,y:0,"text-anchor":"middle"},item.label));
+ g.appendChild(el("text",{class:"sublabel",x:0,y:26,"text-anchor":"middle"},item.sub));
+ const info=el("g",{role:"button",tabindex:"0","aria-label":"查看"+item.label+"说明"});
+ info.appendChild(el("circle",{class:"information",cx:69,cy:-30,r:9}));
+ info.appendChild(el("text",{class:"infoletter",x:69,y:-26,"text-anchor":"middle"},"i"));
+ info.addEventListener("click",e=>{e.stopPropagation();showInfo(n.id)});
+ info.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();e.stopPropagation();showInfo(n.id)}});
+ g.appendChild(info);
+ g.addEventListener("click",()=>clickNode(n.id,n.depth));
+ g.addEventListener("keydown",e=>{if(e.target===g&&(e.key==="Enter"||e.key===" ")){e.preventDefault();clickNode(n.id,n.depth)}});
+ return g;
+}
+function edge(parent,child){
+ const forward=data().direction===1;
+ const x1=forward?parent.x+W/2:child.x+W/2,x2=forward?child.x-W/2:parent.x-W/2;
+ const y1=forward?parent.y:child.y,y2=forward?child.y:parent.y,mid=(x1+x2)/2;
+ return el("path",{class:"edge"+(child.onPath?" solid":""),d:"M "+x1+" "+y1+" C "+mid+" "+y1+", "+mid+" "+y2+", "+x2+" "+y2});
+}
+function render(){
+ const items=layout(),lookup=new Map(items.map(a=>[a.id,a]));
+ const minX=Math.min(...items.map(a=>a.x))-157,maxX=Math.max(...items.map(a=>a.x))+157;
+ const minY=Math.min(...items.map(a=>a.y))-128,maxY=Math.max(...items.map(a=>a.y))+128;
+ const width=Math.max(900,maxX-minX),height=Math.max(430,maxY-minY);
+ const centerX=(minX+maxX)/2,centerY=(minY+maxY)/2;
+ svg.setAttribute("viewBox",[centerX-width/2,centerY-height/2,width,height].join(" "));
+ svg.style.width=Math.max(900,width)+"px";
+ svg.replaceChildren();
+ items.forEach(item=>{if(item.parent)svg.appendChild(edge(lookup.get(item.parent),item))});
+ items.forEach(item=>svg.appendChild(nodeGraphic(item)));
+ const id=path[Math.min(depthShown,path.length-1)];
+ const current=node(id);
+ document.getElementById("surface").textContent=current.form||(mode==="mai"?"まい · "+current.label:"書く");
+ document.getElementById("back").disabled=depthShown===0;
+ for(const button of document.querySelectorAll("[data-mode]"))button.setAttribute("aria-pressed",String(button.dataset.mode===mode));
+ const bar=document.getElementById("trace");bar.replaceChildren();
+ const hint=document.createElement("span");hint.className="hint";hint.textContent="探索路径";bar.appendChild(hint);
+ const reached=path.slice(0,Math.min(depthShown+1,path.length));
+ reached.forEach((id,i)=>{
+  if(i){const arrow=document.createElement("span");arrow.className="arrow";arrow.textContent=mode==="mai"?"←":"→";bar.appendChild(arrow)}
+  const button=document.createElement("button");button.type="button";button.textContent=node(id).label;
+  button.addEventListener("click",()=>clickNode(id,i));bar.appendChild(button);
+ });
+ popover.hidden=true;
+ // 小屏幕始终让当前实节点出现在可视区中央，而不把整张长图强行缩小。
+ const active=items.find(a=>a.id===id&&a.onPath);
+ const activeX=(active.x-(centerX-width/2))/width*svg.clientWidth;
+ stage.scrollLeft=Math.max(0,Math.min(svg.clientWidth-stage.clientWidth,activeX-stage.clientWidth/2));
+}
+document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",()=>restart(b.dataset.mode)));
+document.getElementById("back").addEventListener("click",()=>{
+ if(depthShown>=path.length){depthShown=path.length-1}
+ else if(path.length>1){path.pop();depthShown=path.length}
+ else depthShown=0;
+ render();
 });
-
-const grammar = {
-  godan: { title: "五段动词 · 書く", summary: "活用词尾随接续变换。原型「書く」可分为词干「書」和活用尾「く」。",
-    forms: [["基本形/终止形", "書く"], ["未然形", "書か／書こ"], ["连用形", "書き（音便另论）"], ["假定形", "書け"]],
-    before: [["词干", "書＋活用词尾，构成动词"], ["适用范围", "这里仅使用「書く」作为五段动词样本"]],
-    after: [["未然形・書か", "ない、せる"], ["连用形・書き", "ます、たい"], ["终止形・書く", "まい、らしい"], ["假定形・書け", "ば"]],
-    source: "Excel「用言活用」「助动词接续（动词）」" },
-  ichidan: { title: "一段动词 · 食べる", summary: "以「食べ」为本例词干，「る」在未然形和连用形中脱落。",
-    forms: [["基本形", "食べる"], ["未然形", "食べ"], ["连用形", "食べ"], ["假定形", "食べれ"], ["命令形", "食べろ／食べよ"]],
-    before: [["组成", "食べ（词干）＋る（活用尾）"]],
-    after: [["未然形・食べ", "ない、させる、られる、まい"], ["连用形・食べ", "ます、たい"]],
-    source: "Excel「用言活用」「助动词接续（总表）」" },
-  adjective: { title: "形容词 · 高い", summary: "イ形容词的活用词尾是「い」，变化可沿着片段显示。",
-    forms: [["基本形", "高い"], ["连用形", "高く／高かっ"], ["假定形", "高けれ"]],
-    before: [["词干", "高＋活用词尾"]],
-    after: [["高く", "て"], ["高かっ", "た"], ["高けれ", "ば"]],
-    source: "Excel「用言活用」「常用活用形（简）」" },
-  adjectival: { title: "形容动词 · 静かだ", summary: "形容动词在连体形、连用形等位置使用不同活用尾。",
-    forms: [["基本形", "静かだ"], ["连体形", "静かな"], ["连用形", "静かで／静かだっ／静かに"], ["假定形", "静かなら"]],
-    before: [["词干", "静か＋活用词尾"]],
-    after: [["连体形・静かな", "体言，如「人」"], ["连用形・静かだっ", "た"]],
-    source: "Excel「用言活用」「常用活用形（简）」" },
-  mai: { title: "助动词 · まい", summary: "表示否定意志或否定推量。这里优先展示它前面接什么，而不是从某个动词继续向后展开。",
-    forms: [["终止形", "まい"], ["连体形", "まい"], ["活用特点", "学校文法表中标作无活用"]],
-    before: [["五段动词", "终止形：書く＋まい"], ["一段动词", "未然形：食べ＋まい"], ["使役助动词", "未然形：書かせ＋まい"], ["其他条目", "Excel 另列「ます」「被动助动词」的接续，尚未做交互"]],
-    after: [["终止形／连体形", "本原型未展开「まい」后面的成分；不代表不能接续"]],
-    source: "Excel「助动词活用」「助动词接续（总表）」「助动词接续（动词）」" },
-  seru: { title: "使役助动词 · せる", summary: "五段动词未然形后接「せる」。它本身也有下一段式活用。",
-    forms: [["基本形", "せる"], ["未然形", "せ"], ["连用形", "せ"], ["假定形", "せれ"]],
-    before: [["动词", "五段动词未然形，如「書か」"]],
-    after: [["未然形・せ", "られる、まい"]],
-    source: "Excel「助动词活用」「助动词接续（总表）」" },
-  rareru: { title: "被动助动词 · られる", summary: "这里以使役被动中的「られる」展示活用与后接。",
-    forms: [["基本形", "られる"], ["未然形", "られ"], ["连用形", "られ"], ["假定形", "られれ"]],
-    before: [["使役助动词", "未然形，如「書かせ」"]],
-    after: [["连用形・られ", "たい"], ["未然形・られ", "まい（按 Excel 样本）"]],
-    source: "Excel「助动词活用」「助动词接续（总表）」" },
-  tai: { title: "愿望助动词 · たい", summary: "形容词型活用。点击「い」可以看到活用为「く」「かっ」。",
-    forms: [["基本形", "たい"], ["连用形", "たく／たかっ"], ["假定形", "たけれ"]],
-    before: [["动词及助动词", "连用形，如「書き」「られ」"]],
-    after: [["たく", "ない（愿望否定）"], ["たかっ", "た（过去）"]],
-    source: "Excel「助动词活用」「助动词接续（总表）」" },
-  naiAux: { title: "否定助动词 · ない", summary: "直接接在动词未然形之后，属于形容词型活用。",
-    forms: [["基本形", "ない"], ["连用形", "なく／なかっ"], ["假定形", "なけれ"]],
-    before: [["动词", "未然形，如「書か」「食べ」"]],
-    after: [["なかっ", "た"], ["なく", "て"]],
-    source: "Excel「助动词活用」「助动词接续（总表）」" },
-  naiAdj: { title: "补助形容词 · ない", summary: "如「たくない」的「ない」，这里按学校文法视为补助形容词；它与否定助动词有不同的前接条件。",
-    forms: [["基本形", "ない"], ["连用形", "なく／なかっ"], ["假定形", "なけれ"]],
-    before: [["形容词型活用", "连用形，如「たく」"]],
-    after: [["なかっ", "た"], ["なく", "て"]],
-    source: "Excel「助动词接续（总表）」中「形容」类「ない」；分类另待教材校核" },
-  masu: { title: "礼貌助动词 · ます", summary: "接动词的连用形，表示礼貌。",
-    forms: [["基本形", "ます"], ["连用形", "まし"], ["未然形", "ませ／ましょ"]],
-    before: [["动词", "连用形，如「書き」「食べ」"]],
-    after: [["连用形・まし", "た"], ["终止形・ます", "まい（Excel 所列）"]],
-    source: "Excel「助动词活用」「助动词接续（总表）」" },
-  ta: { title: "过去助动词 · た", summary: "前接连用形，形成过去或完成的表达。",
-    forms: [["基本形", "た"], ["假定形", "たら"]],
-    before: [["用言/助动词", "连用形，如「高かっ」「なかっ」"]],
-    after: [["后接", "本原型未展开，不能据此判断不可接"]],
-    source: "Excel「助动词活用」「助动词接续（总表）」" },
-  rashii: { title: "推定助动词 · らしい", summary: "表示推定等意义，按形容词型活用。",
-    forms: [["基本形", "らしい"], ["连用形", "らしく／らしかっ"], ["假定形", "らしけれ"]],
-    before: [["动词", "终止形"], ["形容词", "终止形"], ["其他助动词", "依具体接续形式"]],
-    after: [["连用形", "可继续接相应成分，本原型尚未展开"]],
-    source: "Excel「助动词活用」「助动词接续（总表）」" },
-  particle: { title: "接续助词", summary: "连接前后的语法成分；不同助词有不同的前接条件。",
-    forms: [["活用", "助词本身一般不活用"]],
-    before: [["ば", "假定形"], ["て", "连用形"]],
-    after: [["后接", "当前样本没有收录完整规则"]],
-    source: "Excel「助词接续」" },
-  noun: { title: "体言", summary: "这里只用「人」演示形容动词连体形修饰体言。",
-    forms: [["活用", "体言通常无活用"]],
-    before: [["连体修饰", "例如「静かな」"]],
-    after: [["后接", "当前样本未展开助词关系"]],
-    source: "示例词，参照 Excel「用言活用」" },
-  other: { title: "其他语法成分", summary: "这是尚未独立建档的样本成分。",
-    forms: [["活用", "本示例尚未整理"]],
-    before: [["前接", "按当前路径展示"]],
-    after: [["后接", "尚未建立完整规则表"]],
-    source: "本页样本" }
-};
-// 前接归类：词类、活用类型与要求的活用形分别写明。
-// 来源是现有 Excel 中的样本接续表；只展示已选取的规则，不自动推断全部词条。
-const incomingGroups = {
-  godan: [],
-  ichidan: [],
-  adjective: [],
-  adjectival: [],
-  mai: [
-    { title: "动词", note: "同属动词，也需区分活用类别", items: [
-      { label: "五段动词", form: "终止形", example: "書く ＋ まい", target: "kakumai" },
-      { label: "一段动词", form: "未然形", example: "食べ ＋ まい", target: "tabemai" }
-    ] },
-    { title: "助动词", note: "按各自活用规定接续", items: [
-      { label: "使役助动词「せる」", form: "未然形", example: "書かせ ＋ まい", target: "kakasemai" },
-      { label: "被动助动词「られる」", form: "未然形", example: "られ ＋ まい（本页尚无完整路径）" }
-    ] }
-  ],
-  tai: [
-    { title: "动词", note: "取连用形", items: [
-      { label: "五段动词", form: "连用形", example: "書き ＋ たい" },
-      { label: "一段动词", form: "连用形", example: "食べ ＋ たい" }
-    ] },
-    { title: "助动词", note: "接允许后续愿望形式的连用形", items: [
-      { label: "被动助动词「られる」", form: "连用形", example: "書かせられ ＋ たい" }
-    ] }
-  ],
-  naiAux: [
-    { title: "动词", note: "要求未然形", items: [
-      { label: "五段动词", form: "未然形", example: "書か ＋ ない" },
-      { label: "一段动词", form: "未然形", example: "食べ ＋ ない" }
-    ] }
-  ],
-  naiAdj: [
-    { title: "形容词型活用", note: "共享活用类型，不代表无条件互接", items: [
-      { label: "形容词", form: "连用形（く）", example: "高く ＋ ない" },
-      { label: "形容词型助动词「たい」", form: "连用形（く）", example: "書きたく ＋ ない" }
-    ] }
-  ],
-  ta: [
-    { title: "形容词型活用", note: "按接过去「た」时的连用形", items: [
-      { label: "形容词", form: "连用形（かっ）", example: "高かっ ＋ た" },
-      { label: "形容词型助动词「たい」", form: "连用形（かっ）", example: "書きたかっ ＋ た" },
-      { label: "否定助动词「ない」", form: "连用形（かっ）", example: "書かなかっ ＋ た" }
-    ] },
-    { title: "动词及其他助动词", note: "也有不同连用形及音便接续，本样本未穷尽", items: [
-      { label: "一段动词", form: "连用形", example: "食べ ＋ た" }
-    ] }
-  ],
-  rashii: [
-    { title: "动词", note: "终止形", items: [
-      { label: "五段动词", form: "终止形", example: "書く ＋ らしい" },
-      { label: "一段动词", form: "终止形", example: "食べる ＋ らしい" }
-    ] },
-    { title: "形容词型活用", note: "再区分词类和具体形式", items: [
-      { label: "形容词", form: "终止形", example: "高い ＋ らしい" },
-      { label: "否定助动词「ない」", form: "终止形", example: "書かない ＋ らしい" },
-      { label: "愿望助动词「たい」", form: "终止形", example: "書きたい ＋ らしい" }
-    ] }
-  ],
-  seru: [
-    { title: "动词", note: "本样本对应五段动词", items: [
-      { label: "五段动词", form: "未然形", example: "書か ＋ せる" }
-    ] }
-  ],
-  rareru: [
-    { title: "助动词", note: "使役被动样本", items: [
-      { label: "使役助动词「せる」", form: "未然形", example: "書かせ ＋ られる" }
-    ] }
-  ],
-  masu: [
-    { title: "动词", note: "取连用形", items: [
-      { label: "五段动词", form: "连用形", example: "書き ＋ ます" },
-      { label: "一段动词", form: "连用形", example: "食べ ＋ ます" }
-    ] }
-  ]
-};
-
-const starters = [
-  { id: "base", label: "書く", type: "五段动词" },
-  { id: "taberu", label: "食べる", type: "一段动词" },
-  { id: "takai", label: "高い", type: "形容词" },
-  { id: "shizukada", label: "静かだ", type: "形容动词" },
-  { id: "mai", label: "まい", type: "助动词 · 反向探索" }
-];
-
-const longRoute = ["base", "ka", "caus", "causStem", "passive", "passiveStem", "tai", "taku", "wishNai", "wishNakatt", "wishPast", "long"];
-let startId = "base";
-let history = [{ id: "base", change: "書く · 基本形" }];
-let expanded = true;
-let selectedUnit = "godan";
-let selectedIndex = 0;
-let selectedTab = "forms";
-let focusOpen = true;
-let openGroups = new Set([0]);
-
-const current = () => scenes[history[history.length - 1].id];
-const written = (scene) => scene.units.map((u) => u.parts.join("")).join("");
-function make(tag, className, text) {
-  const element = document.createElement(tag);
-  if (className) element.className = className;
-  if (text !== undefined) element.textContent = text;
-  return element;
-}
-function selectUnit(key, index) {
-  selectedUnit = key;
-  selectedIndex = index;
-  selectedTab = "forms";
-  focusOpen = true;
-  openGroups = new Set([0]);
-  render(false);
-}
-function setStart(id) {
-  startId = id;
-  history = [{ id, change: written(scenes[id]) + " · 起点" }];
-  selectedIndex = scenes[id].units.length - 1;
-  selectedUnit = scenes[id].units[selectedIndex].key;
-  selectedTab = "forms";
-  focusOpen = true;
-  expanded = true;
-  openGroups = new Set([0]);
-  render(false);
-}
-function advance(option) {
-  history.push({ id: option.target, change: option.change });
-  selectedIndex = current().units.length - 1;
-  selectedUnit = current().units[selectedIndex].key;
-  selectedTab = "forms";
-  focusOpen = true;
-  openGroups = new Set([0]);
-  expanded = !!current().options?.length;
-  render(true);
-}
-function moveTo(index) {
-  history = history.slice(0, index + 1);
-  selectedIndex = current().units.length - 1;
-  selectedUnit = current().units[selectedIndex].key;
-  selectedTab = "forms";
-  focusOpen = true;
-  openGroups = new Set([0]);
-  expanded = !!current().options?.length;
-  render(true);
-}
-function activeUnit() {
-  const units = current().units;
-  return units[selectedIndex]?.key === selectedUnit ?
-    units[selectedIndex] : units.find((u) => u.key === selectedUnit) ?? units[units.length - 1];
-}
-function renderGrammar() {
-  const info = grammar[selectedUnit] ?? grammar.other;
-  const body = document.getElementById("grammar-body");
-  body.replaceChildren();
-  const dl = make("dl", "");
-  (info[selectedTab] ?? []).forEach(([kind, explanation]) => {
-    const row = make("div", "grammar-row");
-    row.appendChild(make("dt", "", kind));
-    row.appendChild(make("dd", "", explanation));
-    dl.appendChild(row);
-  });
-  body.appendChild(dl);
-  document.querySelectorAll("[data-tab]").forEach((button) => {
-    const active = button.dataset.tab === selectedTab;
-    button.setAttribute("aria-selected", String(active));
-    button.tabIndex = active ? 0 : -1;
-  });
-}
-function renderFocus() {
-  const info = grammar[selectedUnit] ?? grammar.other;
-  const chosen = activeUnit();
-  document.getElementById("focus-title").textContent = chosen.parts.join("");
-  document.getElementById("focus-subtitle").textContent = chosen.name;
-  document.getElementById("grammar-summary").textContent = info.summary;
-  document.getElementById("grammar-source").textContent = "示例依据：" + info.source + "。接续列表仅列已录入的样本。";
-  const toggle = document.getElementById("focus-toggle");
-  toggle.setAttribute("aria-expanded", String(focusOpen));
-  document.getElementById("focus-content").hidden = !focusOpen;
-  const pieces = document.getElementById("focus-pieces");
-  pieces.replaceChildren();
-  chosen.parts.forEach((part, index) => {
-    const button = make("button", "piece" + (index === chosen.parts.length - 1 ? " is-focus" : ""), part);
-    button.type = "button";
-    button.title = "查看构词片段和当前语法规则";
-    button.addEventListener("click", () => {
-      document.getElementById("explanation").textContent =
-        "片段「" + part + "」属于「" + chosen.name + "」。结合活用表查看其形态变化。";
-    });
-    pieces.appendChild(button);
-  });
-  renderGrammar();
-}
-function getIncomingGroups() {
-  if (Object.prototype.hasOwnProperty.call(incomingGroups, selectedUnit)) {
-    return incomingGroups[selectedUnit];
-  }
-  const entries = (grammar[selectedUnit] ?? grammar.other).before || [];
-  return entries.length ? [{
-    title: "已录入的前接条件",
-    note: "尚未细分语法类别",
-    items: entries.map(([label, example]) => ({ label, form: "", example }))
-  }] : [];
-}
-function renderIncoming() {
-  const container = document.getElementById("incoming");
-  container.replaceChildren();
-  const groups = getIncomingGroups();
-  const scene = current();
-  if (!groups.length) {
-    container.appendChild(make("p", "relation-note", "当前尚未整理这个语法单位的前接类别，不表示它没有其他接续关系。"));
-    return;
-  }
-  groups.forEach((group, index) => {
-    const section = make("section", "relation-group");
-    const toggle = make("button", "relation-group-button");
-    toggle.type = "button";
-    toggle.setAttribute("aria-expanded", String(openGroups.has(index)));
-    const heading = make("span", "group-heading");
-    heading.appendChild(make("strong", "", group.title));
-    heading.appendChild(make("small", "", group.note));
-    toggle.appendChild(heading);
-    toggle.appendChild(make("span", "group-count", String(group.items.length)));
-    toggle.appendChild(make("span", "fold-arrow", "›"));
-    toggle.addEventListener("click", () => {
-      if (openGroups.has(index)) openGroups.delete(index);
-      else openGroups.add(index);
-      renderIncoming();
-    });
-    section.appendChild(toggle);
-    if (openGroups.has(index)) {
-      const items = make("div", "relation-items");
-      group.items.forEach((entry) => {
-        // 只有当前确实能组成该示例时，候选才能点击；其余只陈列语法规则。
-        const candidate = scene.direction === "before" && selectedUnit === "mai" &&
-          scene.options?.find((option) => option.target === entry.target);
-        const item = make(candidate && expanded ? "button" : "div", "relation-item");
-        if (candidate && expanded) item.type = "button";
-        item.appendChild(make("strong", "", entry.label));
-        if (entry.form) item.appendChild(make("small", "", "要求：" + entry.form));
-        item.appendChild(make("code", "", entry.example));
-        if (candidate && expanded) {
-          item.title = "选择此形式，生成实际接续路径";
-          item.addEventListener("click", () => advance(candidate));
-        }
-        items.appendChild(item);
-      });
-      section.appendChild(items);
-    }
-    container.appendChild(section);
-  });
-}
-function renderOutgoing() {
-  const container = document.getElementById("outgoing");
-  container.replaceChildren();
-  const scene = current();
-  const isActiveTail = current().units[selectedIndex]?.key === selectedUnit &&
-    selectedIndex === scene.units.length - 1;
-  const options = isActiveTail && scene.direction !== "before" && expanded ? (scene.options ?? []) : [];
-  if (options.length) {
-    const grouped = [
-      { title: "活用变化", note: "替换活用尾", items: options.filter((op) => op.change.includes("→")) },
-      { title: "后接成分", note: "添加新的语法单位", items: options.filter((op) => !op.change.includes("→")) }
-    ].filter((group) => group.items.length);
-    grouped.forEach((group) => {
-      const section = make("section", "relation-group");
-      const heading = make("div", "relation-group-button");
-      const label = make("span", "group-heading");
-      label.appendChild(make("strong", "", group.title));
-      label.appendChild(make("small", "", group.note));
-      heading.appendChild(label);
-      section.appendChild(heading);
-      const items = make("div", "relation-items");
-      group.items.forEach((option) => {
-        const button = make("button", "relation-item outgoing-option");
-        button.type = "button";
-        button.title = option.change;
-        button.appendChild(make("strong", "", option.text));
-        button.appendChild(make("small", "", option.desc));
-        button.addEventListener("click", () => advance(option));
-        items.appendChild(button);
-      });
-      section.appendChild(items);
-      container.appendChild(section);
-    });
-  } else {
-    if (scene.options?.length && isActiveTail && !expanded && scene.direction !== "before") {
-      const btn = make("button", "relation-item", "点击这里展开下一步候选 →");
-      btn.type = "button";
-      btn.addEventListener("click", () => { expanded = true; render(false); });
-      container.appendChild(btn);
-      return;
-    }
-    const rows = (grammar[selectedUnit] ?? grammar.other).after ?? [];
-    container.appendChild(make("p", "relation-note", isActiveTail ?
-      "当前分支没有演示下一步；下列是规则表中的其他样本。" :
-      "这里展示选中单位的一般接续关系。请点击形态链末尾继续构造。"));
-    if (!rows.length) return;
-    const section = make("section", "relation-group");
-    const items = make("div", "relation-items");
-    rows.forEach(([label, example]) => {
-      const item = make("div", "relation-item");
-      item.appendChild(make("strong", "", label));
-      item.appendChild(make("small", "", example));
-      items.appendChild(item);
-    });
-    section.appendChild(items);
-    container.appendChild(section);
-  }
-}
-function render(scrollRight) {
-  const scene = current();
-  const chain = document.getElementById("chain");
-  chain.replaceChildren();
-  document.getElementById("form").textContent = written(scene);
-  document.getElementById("step-count").textContent = "· " + (history.length - 1) + " 步";
-  document.getElementById("explanation").textContent = scene.note;
-  document.getElementById("rule-change").textContent = history[history.length - 1].change;
-  document.getElementById("back").disabled = history.length === 1;
-
-  scene.units.forEach((u, index) => {
-    if (index > 0) chain.appendChild(make("span", "connector"));
-    const box = make("div", "unit" + (index === selectedIndex ? " is-selected" : ""));
-    const heading = make("button", "unit-name", u.name);
-    heading.type = "button";
-    heading.title = "在中间展开此语法单位";
-    heading.addEventListener("click", () => selectUnit(u.key, index));
-    box.appendChild(heading);
-    const row = make("div", "pieces");
-    u.parts.forEach((part, partIndex) => {
-      const focus = index === scene.units.length - 1 &&
-        partIndex === u.parts.length - 1 && !!scene.options?.length;
-      const button = make("button", "piece" + (focus ? " is-focus" : ""), part);
-      button.type = "button";
-      button.title = focus ? "切换下一层候选" : "查看所在语法单位";
-      button.setAttribute("aria-expanded", String(focus && expanded));
-      button.addEventListener("click", () => {
-        selectUnit(u.key, index);
-        if (focus) { expanded = !expanded; render(false); }
-      });
-      row.appendChild(button);
-    });
-    box.appendChild(row);
-    box.title = "点击单位边框查看整体语法";
-    box.addEventListener("click", (event) => {
-      if (event.target === box || event.target === row) selectUnit(u.key, index);
-    });
-    chain.appendChild(box);
-  });
-  if (!scene.options?.length) chain.appendChild(make("div", "invitation", "样本路径到此结束"));
-  const trail = document.getElementById("trail");
-  trail.replaceChildren();
-  history.forEach((entry, index) => {
-    const button = make("button", index === history.length - 1 ? "current" : "",
-      (index === 0 ? "起点" : index + ". ") + entry.change);
-    button.type = "button";
-    button.title = "回到这一步";
-    button.addEventListener("click", () => moveTo(index));
-    trail.appendChild(button);
-  });
-  const startersEl = document.getElementById("starters");
-  startersEl.replaceChildren();
-  starters.forEach(({ id, label, type }) => {
-    const button = make("button", "start-option" + (startId === id ? " active" : ""), label);
-    button.type = "button";
-    button.title = type;
-    button.setAttribute("aria-pressed", String(startId === id));
-    button.addEventListener("click", () => setStart(id));
-    startersEl.appendChild(button);
-  });
-  renderIncoming();
-  renderFocus();
-  renderOutgoing();
-  if (scrollRight) {
-    requestAnimationFrame(() => {
-      const board = document.getElementById("board");
-      board.scrollLeft = board.scrollWidth;
-    });
-  }
-}
-if (typeof document !== "undefined") {
-  document.getElementById("back").addEventListener("click", () => {
-    if (history.length > 1) moveTo(history.length - 2);
-  });
-  document.getElementById("reset").addEventListener("click", () => setStart(startId));
-  document.getElementById("focus-toggle").addEventListener("click", () => {
-    focusOpen = !focusOpen;
-    renderFocus();
-  });
-  document.getElementById("full").addEventListener("click", () => {
-    startId = "base";
-    history = longRoute.map((id, index) => {
-      const previous = scenes[longRoute[index - 1]];
-      const chosen = previous?.options?.find((option) => option.target === id);
-      return { id, change: chosen ? chosen.change : "書く · 起点" };
-    });
-    selectedUnit = "rashii";
-    selectedIndex = current().units.length - 1;
-    selectedTab = "forms";
-    focusOpen = true;
-    openGroups = new Set([0]);
-    expanded = false;
-    render(true);
-  });
-  document.querySelectorAll("[data-tab]").forEach((button) => {
-    button.addEventListener("click", () => {
-      selectedTab = button.dataset.tab;
-      renderGrammar();
-    });
-  });
-  render(false);
-}
-
+document.getElementById("reset").addEventListener("click",()=>restart(mode));
+document.getElementById("close").addEventListener("click",()=>{popover.hidden=true});
+render();
 </script>
 </body>
 </html>
