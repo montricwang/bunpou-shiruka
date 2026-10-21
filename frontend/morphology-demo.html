@@ -85,6 +85,13 @@ html[data-theme="dark"] {
 .choice{cursor:pointer;touch-action:none}
 .choice .choice-shape{fill:var(--node-bg);fill-opacity:.65;stroke:var(--ghost-stroke);stroke-width:1.6;stroke-dasharray:5 4;rx:8}
 .choice:hover .choice-shape{stroke:var(--red);fill:var(--rose)}
+.choice.selected .choice-shape{stroke:var(--red);stroke-width:2.2;stroke-dasharray:none;fill:var(--active-frame);fill-opacity:1}
+.choice.selected .choice-label{fill:var(--red)}
+.choice-type{fill:var(--ink);font-size:12px;font-weight:650;pointer-events:none}
+.choice-variant{fill:var(--muted);font-size:9.5px;pointer-events:none}
+.choice.selected .choice-type{fill:var(--red)}
+.unit.active .choice-guide{stroke:var(--edge-stroke)}
+
 .choice .choice-label{fill:var(--ink);font-size:21px;font-weight:600;pointer-events:none}
 .choice .choice-detail{fill:var(--muted);font-size:10px;pointer-events:none}
 .choice-guide{stroke:var(--edge-stroke);stroke-width:1.4;stroke-dasharray:4 5;fill:none}
@@ -103,9 +110,9 @@ button:focus-visible,[role="button"]:focus-visible{outline:2px solid var(--red);
 </head>
 <body>
 <main>
-<header><div class="brand">文法？知るか！</div><div class="header-actions"><button id="theme-toggle" type="button" aria-label="切换深色模式" aria-pressed="false">夜间模式</button><span class="version">GRAPH EXPERIMENT · 007</span></div></header>
+<header><div class="brand">文法？知るか！</div><div class="header-actions"><button id="theme-toggle" type="button" aria-label="切换深色模式" aria-pressed="false">夜间模式</button><span class="version">GRAPH EXPERIMENT · 008</span></div></header>
 <section class="intro">
-<div><div class="eyebrow">GRAMMAR GRAPH</div><h1>点开一条关系，继续探索。</h1><p>点击词尾，在同一个语法框内选择活用形；接入助动词时才新增分组。节点仍可拖动。</p></div>
+<div><div class="eyebrow">GRAMMAR GRAPH</div><h1>点开一条关系，继续探索。</h1><p>点击「書く」的词尾，右侧纵向展开六种活用形；同形「く」「け」也按功能区分。选择后继续向右接续。</p></div>
 <nav class="switch" aria-label="起点"><button data-mode="kaku" aria-pressed="true">書く</button><button data-mode="mai" aria-pressed="false">まい</button></nav>
 </section>
 <section class="shell">
@@ -116,7 +123,7 @@ button:focus-visible,[role="button"]:focus-visible{outline:2px solid var(--red);
 </div>
 <div class="trace" id="trace"></div>
 </section>
-<p class="foot">活用只改变当前虚线框中的词尾，接续才增加新语法单位。「まい」按意义和接续法继续展开，暂不填充例句。页面保留折叠和拖动。</p>
+<p class="foot">六种动词活用形不一定对应六种不同的词尾。「書く」以八个形式候选展示未然形、连用形、终止形、连体形、假定形、命令形；选择后只更新原语法单位，新的助词、助动词才另起分组。例句暂不加入。</p>
 </main>
 <script src="./morphology-demo.js"></script>
 </body>

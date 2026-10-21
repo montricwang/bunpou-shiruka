@@ -1,13 +1,18 @@
 "use strict";
 
 // 词尾活用属于同一个语法单位；选择接续成分时才产生另一个单位。
-const verbForms = {
-  "く": {name:"基本形", choices:[["か","未然形"],["き","连用形"],["け","假定形"],["こ","意向用未然形"]]},
-  "か": {name:"未然形", attaches:[["ない","否定助动词"],["せる","使役助动词"]]},
-  "き": {name:"连用形", attaches:[["ます","礼貌助动词"]]},
-  "け": {name:"假定形", attaches:[["ば","接续助词"]]},
-  "こ": {name:"未然形", attaches:[["う","意向助动词"]]}
-};
+// 六类活用形与实际词尾分别建模。同形「く」「け」必须能指向不同接续规则。
+const verbInflections = [
+  {id:"mizen-a",form:"未然形",ending:"か",variant:"否定・使役",attaches:[["ない","否定助动词"],["せる","使役助动词"]]},
+  {id:"mizen-o",form:"未然形",ending:"こ",variant:"意向",attaches:[["う","意向助动词"]]},
+  {id:"renyou",form:"连用形",ending:"き",variant:"通常",attaches:[["ます","礼貌助动词"]]},
+  {id:"renyou-onbin",form:"连用形",ending:"い",variant:"イ音便",attaches:[["た","过去助动词"],["て","接续助词"]]},
+  {id:"terminal",form:"终止形",ending:"く",variant:"",attaches:[["まい","否定推量助动词"],["らしい","推定助动词"]]},
+  {id:"attributive",form:"连体形",ending:"く",variant:"",attaches:[["ようだ","比况助动词"]]},
+  {id:"conditional",form:"假定形",ending:"け",variant:"",attaches:[["ば","接续助词"]]},
+  {id:"imperative",form:"命令形",ending:"け",variant:"",attaches:[]}
+];
+const verbForms = Object.fromEntries(verbInflections.map(item=>[item.id,item]));
 const negativeForms = {
   "い": {name:"基本形", choices:[["かっ","连用形"],["く","连用形"]]},
   "かっ": {name:"连用形", attaches:[["た","过去助动词"]]},
@@ -20,7 +25,10 @@ const attachmentInfo = {
   "ば":{title:"接续助词",body:"假定形「書け」可以后接「ば」。"},
   "う":{title:"意向助动词",body:"未然形「書こ」后接「う」构成「書こう」。"},
   "た":{title:"过去助动词",body:"在否定助动词连用形「なかっ」后接「た」，构成「書かなかった」。"},
-  "て":{title:"接续助词",body:"在否定助动词连用形「なく」后接「て」。"}
+  "て":{title:"接续助词",body:"连用形或相应音便形后面可以接「て」，如「書いて」「書かなくて」。"},
+  "まい":{title:"否定推量・意志助动词",body:"动词五段终止形「書く」可接「まい」，它的其他前接条件可在「まい」入口继续探索。"},
+  "らしい":{title:"推定助动词",body:"动词终止形可以接「らしい」，如「書くらしい」。"},
+  "ようだ":{title:"比况助动词",body:"此处按连体形接续展示「書くようだ」。"}
 };
 // 依据用户所给《まい》教材页整理分类，不把例句作为必需数据。
 const maiTree = {
@@ -48,7 +56,7 @@ const maiTree = {
   passive:{label:"（ら）れる",kind:"被动助动词",children:["pIrrealis"]},
   pIrrealis:{label:"未然形",kind:"接续形",children:[]}
 };
-const makeInitial = () => ({ ending:"く", editor:null, attachment:null, negEnding:"い", negEditor:false, tail:null, folded:{}, offsets:{}, atomOffsets:{} });
+const makeInitial = () => ({ formId:"terminal", formPicked:false, ending:"く", editor:null, attachment:null, negEnding:"い", negEditor:false, tail:null, folded:{}, offsets:{}, atomOffsets:{} });
 let kaku = makeInitial();
 let kakuHistory = [];
 let maiPath = ["mai"], maiExpanded = false;
@@ -59,7 +67,7 @@ const stage=document.getElementById("stage");
 const tip=document.getElementById("popover");
 const byId=id=>document.getElementById(id);
 const clone = state => JSON.parse(JSON.stringify(state));
-const verbForm = () => verbForms[kaku.ending];
+const verbForm = () => verbForms[kaku.formId];
 const negativeForm = () => negativeForms[kaku.negEnding];
 const unitSuffix = () => kaku.attachment==="ない"?"な"+kaku.negEnding:kaku.attachment||"";
 const surface = () => "書"+kaku.ending+unitSuffix()+(kaku.tail||"");
@@ -68,13 +76,17 @@ function updateKaku(fn) {
   fn();
   render();
 }
-function chooseVerb(next){
+function chooseVerb(formId){
+  const selected=verbForms[formId];
+  if(!selected)throw new Error("Unknown form: "+formId);
   updateKaku(()=>{
-    if(kaku.ending!==next){
+    if(kaku.formId!==formId){
       kaku.attachment=null;kaku.tail=null;kaku.negEnding="い";kaku.negEditor=false;
       delete kaku.folded.negative;delete kaku.folded.tail;
     }
-    kaku.ending=next;kaku.editor=null;
+    kaku.formId=formId;kaku.ending=selected.ending;kaku.formPicked=true;
+    // 保留整列候选；可重新选择另一种活用形，已选分支高亮。
+    kaku.editor="verb";
   });
 }
 function chooseNegative(next){updateKaku(()=>{if(kaku.negEnding!==next)kaku.tail=null;kaku.negEnding=next;kaku.negEditor=false;});}
@@ -113,48 +125,56 @@ function chooseMai(id,depth) {
   render();
 }
 function kakuModels(){
+ const active=verbForm();
+ const suffixOpen=kaku.editor==="verb"&&!kaku.folded.verb;
+ const title=!kaku.formPicked?"基本形":active.form;
  const models=[{
-  id:"verb",title:"五段动词 · "+(kaku.editor==="verb"?"活用":verbForm().name),
-  atoms:[{id:"stem",text:"書",role:"词干"},{id:"ending",text:kaku.ending,role:"活用词尾"}],
-  choices:kaku.editor==="verb"?verbForms["く"].choices.map(([text,role])=>({text,role,choose:()=>chooseVerb(text)})):[],
+  id:"verb",title:"五段动词 · "+(suffixOpen&&!kaku.formPicked?"活用":title),
+  atoms:suffixOpen?[{id:"stem",text:"書",role:"词干"}]:
+    [{id:"stem",text:"書",role:"词干"},{id:"ending",text:kaku.ending,role:"活用词尾"}],
+  choices:suffixOpen?verbInflections.map(item=>({
+    id:item.id,text:item.ending,form:item.form,variant:item.variant,
+    role:item.form+(item.variant?" · "+item.variant:""),
+    selected:item.id===kaku.formId,choose:()=>chooseVerb(item.id)
+  })):[],
   onClick:()=>expandEnding("verb"),
-  note:"「書く」只保留一个动词单位，选择不同词尾时直接改变内部活用形。",
+  note:"六种活用形（未然、连用、终止、连体、假定、命令）可共用词尾。点击词尾和活用形后，从选中的形式继续接续。",
   x:0,y:0
  }];
- if(!kaku.attachment&&kaku.ending!=="く"){
-  const options=verbForm().attaches||[];
-  options.forEach(([text,title],i)=>models.push({
-   id:"ghost:"+text,title,ghost:true,atoms:[{id:"main",text,role:"可接成分"}],
-   choices:[],x:345,y:(i-(options.length-1)/2)*180,prev:"verb",
+ if(!kaku.attachment&&kaku.formPicked){
+  const options=active.attaches||[];
+  options.forEach(([text,description],i)=>models.push({
+   id:"ghost:"+text,title:description,ghost:true,atoms:[{id:"main",text,role:"可接成分"}],
+   choices:[],x:suffixOpen?550:365,y:(i-(options.length-1)/2)*175,prev:"verb",
    onClick:()=>attach(text),note:attachmentInfo[text].body
   }));
  }else if(kaku.attachment){
   const negative=kaku.attachment==="ない";
   models.push({
-   id:"negative", title:negative?"否定助动词 · "+(kaku.negEditor?"活用":negativeForm().name):attachmentInfo[kaku.attachment].title,
+   id:"negative",title:negative?"否定助动词 · "+(kaku.negEditor?"活用":negativeForm().name):attachmentInfo[kaku.attachment].title,
    atoms:negative?[{id:"stem",text:"な",role:"助动词词干"},{id:"ending",text:kaku.negEnding,role:"活用词尾"}]:
-       kaku.attachment==="せる"?[{id:"stem",text:"せ",role:"助动词词干"},{id:"ending",text:"る",role:"活用词尾"}]:
-       [{id:"main",text:kaku.attachment,role:"后接成分"}],
+     kaku.attachment==="せる"?[{id:"stem",text:"せ",role:"助动词词干"},{id:"ending",text:"る",role:"活用词尾"}]:
+     [{id:"main",text:kaku.attachment,role:"后接成分"}],
    choices:negative&&kaku.negEditor?negativeForms["い"].choices.map(([text,role])=>({text,role,choose:()=>chooseNegative(text)})):[],
    onClick:negative?()=>expandEnding("negative"):null,
    note:attachmentInfo[kaku.attachment].body,
-   x:345,y:0,prev:"verb"
+   x:suffixOpen?550:365,y:0,prev:"verb"
   });
   if(negative&&!kaku.tail&&kaku.negEnding!=="い"){
    (negativeForm().attaches||[]).forEach(([text,title],i)=>models.push({
     id:"ghost:"+text,ghost:true,title,atoms:[{id:"main",text,role:"可接成分"}],
-    choices:[],x:690,y:i*160,onClick:()=>attach(text),note:attachmentInfo[text].body,
+    choices:[],x:suffixOpen?930:730,y:i*170,onClick:()=>attach(text),note:attachmentInfo[text].body,
     prev:"negative"
    }));
   }
   if(kaku.tail){
    models.push({id:"tail",title:attachmentInfo[kaku.tail].title,atoms:[{id:"main",text:kaku.tail,role:"助词 / 助动词"}],
-     choices:[],x:690,y:0,prev:"negative",note:attachmentInfo[kaku.tail].body});
+     choices:[],x:suffixOpen?930:730,y:0,prev:"negative",note:attachmentInfo[kaku.tail].body});
   }
  }
  return models.map(u=>({...u,atoms:kaku.folded[u.id]&&u.atoms.length>1?
-    [{id:"folded",text:u.atoms.map(a=>a.text).join(""),role:"收起的语法单位"}]:u.atoms,
-    choices:kaku.folded[u.id]?[]:u.choices||[]}));
+   [{id:"folded",text:u.atoms.map(a=>a.text).join(""),role:"收起的语法单位"}]:u.atoms,
+   choices:kaku.folded[u.id]?[]:u.choices||[]}));
 }
 function maiModels(){
  const selected=maiPath.map((id,index)=>({
@@ -192,13 +212,23 @@ function measure(model){
   const point={...a,x:current+a.width/2+(shift.x||0),y:15+(shift.y||0)};
   current+=a.width+14;return point;
  });
- const choicePlaced=(model.choices||[]).map((c,i)=>({...c,x:(i%2?54:-54),y:106+Math.floor(i/2)*57}));
+ const wideChoices=model.id==="verb"&&model.choices?.length>0;
+ if(wideChoices&&placed[0]){placed[0].x=-149;placed[0].y=0;}
+ const choicePlaced=(model.choices||[]).map((c,i)=>({
+   ...c,x:wideChoices?112:(i%2?54:-54),
+   y:wideChoices?(i-(model.choices.length-1)/2)*61+14:
+     106+Math.floor(i/2)*57
+ }));
  const titleWidth=model.title.length*6.8+38;
  const contentWidth=Math.max(...placed.map(a=>Math.abs(a.x)+a.width/2+20));
- const halfW=Math.max(123,titleWidth/2,contentWidth,choicePlaced.length?125:0);
- const minY=Math.min(-75,...placed.map(a=>a.y-39));
- const maxY=Math.max(...placed.map(a=>a.y+39),choicePlaced.length?156+(Math.ceil(choicePlaced.length/2)-1)*57:72);
- return {...model,x:groupX,y:groupY,atoms:placed,choices:choicePlaced,halfW,minY,maxY,width:halfW*2,height:maxY-minY};
+ const halfW=Math.max(123,titleWidth/2,contentWidth,wideChoices?230:choicePlaced.length?125:0);
+ const minY=Math.min(-75,...placed.map(a=>a.y-39),
+   ...(wideChoices?choicePlaced.map(c=>c.y-34):[]));
+ const maxY=Math.max(72,...placed.map(a=>a.y+39),
+   ...(wideChoices?choicePlaced.map(c=>c.y+36):
+     choicePlaced.length?[156+(Math.ceil(choicePlaced.length/2)-1)*57]:[]));
+ return {...model,x:groupX,y:groupY,atoms:placed,choices:choicePlaced,
+   halfW,minY,maxY,width:halfW*2,height:maxY-minY};
 }
 const getLayout=()=>models().map(measure);
 const svgElement=(tag,attrs={},value)=>{
@@ -211,7 +241,11 @@ function connectorPath(start,end){
  const backwards=mode==="mai";
  const x1=backwards?start.x-start.halfW:start.x+start.halfW;
  const x2=backwards?end.x+end.halfW:end.x-end.halfW;
- const y1=start.y,y2=end.y,m=(x1+x2)/2;
+ // 已选词尾所在行是新的接续起点，避免所有接续线都从整个大框中心出现。
+ const selected=start.id==="verb"&&start.choices.length?
+   start.choices.find(c=>c.id===kaku.formId):null;
+ const y1=selected?start.y+selected.y:start.y;
+ const y2=end.y,m=(x1+x2)/2;
  return "M"+x1+" "+y1+" C"+m+" "+y1+" "+m+" "+y2+" "+x2+" "+y2;
 }
 
@@ -262,9 +296,9 @@ function bindDrag(element,unit,atom){
  element.addEventListener("pointerup",finishDrag);
  element.addEventListener("pointercancel",cancelDrag);
 }
-function makeChrome(g,text,x,label,action){
+function makeChrome(g,text,x,label,action,topY=-52){
  const item=svgElement("g",{class:"chrome-hit",role:"button",tabindex:"0","aria-label":label,
-  transform:"translate("+x+",-52)"});
+  transform:"translate("+x+","+topY+")"});
  item.appendChild(svgElement("circle",{class:"chrome-circle",r:9}));
  item.appendChild(svgElement("text",{class:"chrome-glyph",y:4,"text-anchor":"middle"},text));
  item.addEventListener("click",ev=>{ev.stopPropagation();action();});
@@ -275,6 +309,13 @@ function makeChrome(g,text,x,label,action){
  g.appendChild(item);return item;
 }
 function choiceGuidePath(unit,choice){
+ if(unit.id==="verb"&&choice.id){
+   const stem=unit.atoms[0];
+   const fromX=stem.x+stem.width/2,fromY=stem.y;
+   const toX=choice.x-96,toY=choice.y;
+   const middle=(fromX+toX)/2;
+   return "M"+fromX+" "+fromY+" C"+middle+" "+fromY+" "+middle+" "+toY+" "+toX+" "+toY;
+ }
  const ending=unit.atoms.find(atom=>atom.id==="ending")||unit.atoms[0];
  const fromX=ending.x,fromY=ending.y+37,toX=choice.x,toY=choice.y-22;
  const middle=(fromY+toY)/2;
@@ -286,7 +327,7 @@ function createUnit(unit){
   "aria-label":unit.title});
  const frame=svgElement("rect",{class:"unit-frame",x:-unit.halfW,y:unit.minY,width:unit.width,height:unit.height});
  root.appendChild(frame);
- const title=svgElement("text",{class:"unit-title",y:-43,"text-anchor":"middle"},unit.title);
+ const title=svgElement("text",{class:"unit-title",y:unit.minY+25,"text-anchor":"middle"},unit.title);
  root.appendChild(title);
  if(unit.onClick){
   bindDrag(frame,unit,null);
@@ -300,10 +341,10 @@ function createUnit(unit){
  const chrome=[];
  if(!unit.ghost){
   const note=unit.note||"当前语法单位。";
-  chrome.push(makeChrome(root,"i",unit.halfW-19,"语法说明",()=>showInfo(unit.title,note)));
+  chrome.push(makeChrome(root,"i",unit.halfW-19,"语法说明",()=>showInfo(unit.title,note),unit.minY+19));
   if(mode==="kaku"&&(unit.id==="verb"||unit.id==="negative")){
    chrome.push(makeChrome(root,kaku.folded[unit.id]?"+":"−",-unit.halfW+19,
-    kaku.folded[unit.id]?"展开语法单位":"折叠语法单位",()=>fold(unit.id)));
+    kaku.folded[unit.id]?"展开语法单位":"折叠语法单位",()=>fold(unit.id),unit.minY+19));
   }
  }
  const atomViews=new Map();
@@ -331,12 +372,21 @@ function createUnit(unit){
   unit.choices.forEach(choice=>{
    const guide=svgElement("path",{class:"choice-guide",d:choiceGuidePath(unit,choice)});
    root.appendChild(guide);guideViews.push(guide);
-   const c=svgElement("g",{class:"choice",role:"button",tabindex:"0",
-    "aria-label":choice.role+" · "+choice.text,
-    transform:"translate("+choice.x+","+choice.y+")"});
-   c.appendChild(svgElement("rect",{class:"choice-shape",x:-47,y:-22,width:94,height:49}));
-   c.appendChild(svgElement("text",{class:"choice-label","text-anchor":"middle",y:0},choice.text));
-   c.appendChild(svgElement("text",{class:"choice-detail","text-anchor":"middle",y:18},choice.role));
+   const wide=unit.id==="verb"&&!!choice.id;
+   const c=svgElement("g",{class:"choice"+(choice.selected?" selected":""),role:"button",tabindex:"0",
+     "aria-pressed":String(!!choice.selected),
+     "aria-label":choice.role+" · "+choice.text,
+     transform:"translate("+choice.x+","+choice.y+")"});
+   if(wide){
+     c.appendChild(svgElement("rect",{class:"choice-shape",x:-96,y:-25,width:192,height:52}));
+     c.appendChild(svgElement("text",{class:"choice-type",x:-79,y:3},choice.form));
+     c.appendChild(svgElement("text",{class:"choice-label",x:61,y:5,"text-anchor":"middle"},choice.text));
+     if(choice.variant)c.appendChild(svgElement("text",{class:"choice-variant",x:61,y:20,"text-anchor":"middle"},choice.variant));
+   }else{
+     c.appendChild(svgElement("rect",{class:"choice-shape",x:-47,y:-22,width:94,height:49}));
+     c.appendChild(svgElement("text",{class:"choice-label","text-anchor":"middle",y:0},choice.text));
+     c.appendChild(svgElement("text",{class:"choice-detail","text-anchor":"middle",y:18},choice.role));
+   }
    c.addEventListener("click",ev=>{ev.stopPropagation();choice.choose();});
    c.addEventListener("keydown",ev=>{if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();choice.choose();}});
    c.addEventListener("pointerdown",ev=>ev.stopPropagation());
@@ -352,9 +402,10 @@ function updatePositions(){
   view.root.setAttribute("transform","translate("+unit.x+","+unit.y+")");
   view.frame.setAttribute("x",-unit.halfW);view.frame.setAttribute("y",unit.minY);
   view.frame.setAttribute("width",unit.width);view.frame.setAttribute("height",unit.height);
+  view.title.setAttribute("y",unit.minY+25);
   view.chrome.forEach((item,i)=>{
    const left=mode==="kaku"&&unit.id!=="tail"&&i===1;
-   item.setAttribute("transform","translate("+(left?-unit.halfW+19:unit.halfW-19)+",-52)");
+   item.setAttribute("transform","translate("+(left?-unit.halfW+19:unit.halfW-19)+","+(unit.minY+19)+")");
   });
   unit.atoms.forEach(atom=>visible.get(unit.id)?.atomViews.get(atom.id)?.setAttribute(
     "transform","translate("+atom.x+","+atom.y+")"));
