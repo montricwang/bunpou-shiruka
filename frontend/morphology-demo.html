@@ -34,27 +34,6 @@ output{font-size:clamp(20px,2.3vw,29px);font-family:"Yu Gothic","Noto Sans JP",s
 #graph{display:block;height:540px}
 .edge{stroke:#b8c0bb;stroke-width:1.7;fill:none;stroke-dasharray:5 6}
 .edge.solid{stroke:var(--red);stroke-width:2.2;stroke-dasharray:none}
-.node{cursor:grab;touch-action:none}
-.node.dragging{cursor:grabbing}
-.node .shape{fill:#fffefa;stroke:#bcc4bd;stroke-width:1.4;rx:13}
-.node.ghost .shape{fill:#f8f9f5;stroke:#bac4c0;stroke-dasharray:5 5}
-.node.active .shape{fill:#fff4ef;stroke:#c59b8b;stroke-width:1.8}
-.node.root .shape{fill:var(--red);stroke:var(--red)}
-.node:hover .shape{stroke:var(--red);stroke-width:2}
-.node text{pointer-events:none;fill:var(--ink)}
-.node.root text{fill:white}
-.node.ghost text{opacity:.65}
-.node .mainlabel{font:650 22px "Yu Gothic","Noto Sans JP",sans-serif}
-.node .sublabel{font:11px "Segoe UI","Microsoft YaHei",sans-serif;fill:var(--muted)}
-.node.root .sublabel{fill:#ffffffb5}
-.node .segment-bg{fill:#fff;stroke:#dfc9bf;stroke-width:1;rx:7}
-.node.root .segment-bg{fill:#ffffff16;stroke:#ffffff88}
-.node .segment-divider{stroke:#dfc9bf;stroke-width:1}
-.node.root .segment-divider{stroke:#ffffff88}
-.node .information{stroke:#bdc9c3;fill:#fffefa}
-.node.root .information{stroke:#ffffff80;fill:#ffffff20}
-.node .infoletter{font:700 10px "Segoe UI",sans-serif;fill:#7e8984}
-.node.root .infoletter{fill:white}
 .trace{border-top:1px solid var(--line);display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:49px;padding:11px 22px}
 .trace .hint{font-size:11px;color:var(--muted);margin-right:8px}
 .trace button{border:0;border-radius:7px;background:#f1efec;color:#71645e;padding:5px 9px;font-size:12px}
@@ -68,196 +47,77 @@ output{font-size:clamp(20px,2.3vw,29px);font-family:"Yu Gothic","Noto Sans JP",s
 .foot{font-size:12px;line-height:1.8;color:var(--muted);margin:17px 3px}
 @media(max-width:680px){main{padding:21px 14px}.intro{margin:43px 0 23px}.tools{padding:13px}.stage{min-height:430px}#graph{height:430px}.trace{padding:11px 13px}}
 
-/* Atom-level grammar graph: dashed frames group independently movable nodes. */
-.grammar-group{touch-action:none}
-.grammar-group.root .group-frame{fill:rgba(170,56,30,.035);stroke:#aa381e;stroke-width:1.7;stroke-dasharray:7 5;rx:15}
-.grammar-group.active .group-frame{fill:#fff7f3;stroke:#c58c7b;stroke-width:1.7;stroke-dasharray:7 5;rx:15}
-.grammar-group.ghost .group-frame{fill:rgba(248,249,245,.72);stroke:#bbc5bf;stroke-width:1.5;stroke-dasharray:6 5;rx:15}
-.grammar-group.dragging{cursor:grabbing}
-.group-label{font:600 12px 'Segoe UI','Microsoft YaHei',sans-serif;fill:#66726d;pointer-events:none}
-.grammar-group.root .group-label{fill:#aa381e}
-.atom-node{cursor:grab;touch-action:none}
-.atom-node.dragging{cursor:grabbing}
-.atom-shape{fill:#fffefa;stroke:#b7c2bb;stroke-width:1.4;rx:10}
-.atom-node:hover .atom-shape{stroke:#aa381e;stroke-width:2}
-.grammar-group.ghost .atom-shape{fill:#fcfcf9;stroke:#c5ccc6}
-.atom-text{font:650 22px 'Yu Gothic','Noto Sans JP',sans-serif;fill:#293335;pointer-events:none}
-.atom-role{font:10px 'Segoe UI','Microsoft YaHei',sans-serif;fill:#7b8680;pointer-events:none}
-.group-info-circle{fill:#fffefa;stroke:#c4cec7;stroke-width:1}
-.group-info-letter{font:700 10px 'Segoe UI',sans-serif;fill:#738078;pointer-events:none}
-.info-hit{cursor:pointer}
-.grammar-group.root .group-info-circle{stroke:#d6a99b}
-.grammar-group.root .group-info-letter{fill:#aa381e}
+/* Graph v7: grammar units persist while their endings change. */
+:root {
+  --graph-grid:#d2d8d2;--panel-soft:#eff0ec;--muted-panel:#f8f9f5;--active-frame:#fff7f3;
+  --ghost-frame:#fafbf7;--node-bg:#fffefa;--node-border:#b7c2bb;--ghost-stroke:#bfc8c2;
+  --label-strong:#293335;--edge-stroke:#b9c3bb;--info-border:#c4cec7;--popover-border:#e0beb2;
+}
+html[data-theme="dark"] {
+  color-scheme:dark;
+  --bg:#1e2327;--paper:#292f34;--ink:#e8e9e4;--muted:#aebbb9;--line:#444e50;--red:#dd8a72;--rose:#45352f;
+  --graph-grid:#465052;--panel-soft:#343d40;--muted-panel:#2c3336;--active-frame:#39302e;
+  --ghost-frame:#293137;--node-bg:#343b40;--node-border:#68767a;--ghost-stroke:#76817f;
+  --label-strong:#f0eee8;--edge-stroke:#889a9a;--info-border:#8a9795;--popover-border:#72564e;
+}
+.header-actions{display:flex;align-items:center;gap:11px}
+#theme-toggle{background:var(--paper);color:var(--ink);border:1px solid var(--line);padding:8px 13px;border-radius:8px;font-size:12px}
+#theme-toggle:hover{border-color:var(--red)}
+.switch{background:var(--panel-soft)}
+.switch button[aria-pressed=true]{box-shadow:none}
+.stage{background-image:radial-gradient(var(--graph-grid) .8px,transparent .9px)}
+.trace button{background:var(--panel-soft);color:var(--ink)}
+.trace-piece{background:var(--panel-soft);color:var(--ink);font-size:12px;border-radius:7px;padding:5px 9px}
+.popover{border-color:var(--popover-border)}
+.popover p{color:var(--muted)}
+.unit-frame{fill:var(--ghost-frame);stroke:var(--node-border);stroke-width:1.65;stroke-dasharray:7 6;rx:14}
+.unit.active .unit-frame{fill:var(--active-frame);stroke:var(--red)}
+.unit.ghost .unit-frame{fill:var(--ghost-frame);stroke:var(--ghost-stroke);stroke-dasharray:5 6}
+.unit-title{fill:var(--muted);font-size:12px;font-weight:620;pointer-events:none}
+.unit.active .unit-title{fill:var(--red)}
+.atom-shape{fill:var(--node-bg);stroke:var(--node-border);stroke-width:1.4;rx:9}
+.atom-label{fill:var(--ink);font-size:24px;font-weight:670;pointer-events:none;font-family:"Yu Gothic","Noto Sans JP",sans-serif}
+.atom-role{fill:var(--muted);font-size:10px;pointer-events:none}
+.unit.ghost .atom-label,.unit.ghost .atom-role{opacity:.75}
+.atom-hit{cursor:grab;touch-action:none}
+.unit.dragging,.atom-hit.dragging{cursor:grabbing}
+.atom-hit:hover .atom-shape{stroke:var(--red);stroke-width:2}
+.choice{cursor:pointer;touch-action:none}
+.choice .choice-shape{fill:var(--node-bg);fill-opacity:.65;stroke:var(--ghost-stroke);stroke-width:1.6;stroke-dasharray:5 4;rx:8}
+.choice:hover .choice-shape{stroke:var(--red);fill:var(--rose)}
+.choice .choice-label{fill:var(--ink);font-size:21px;font-weight:600;pointer-events:none}
+.choice .choice-detail{fill:var(--muted);font-size:10px;pointer-events:none}
+.choice-guide{stroke:var(--edge-stroke);stroke-width:1.4;stroke-dasharray:4 5;fill:none}
+.link{stroke:var(--edge-stroke);stroke-width:1.8;fill:none}
+.link.solid{stroke:var(--red);stroke-width:2.2}
+.chrome-hit{cursor:pointer}
+.chrome-circle{fill:var(--paper);stroke:var(--info-border);stroke-width:1.2}
+.chrome-glyph{fill:var(--muted);font-size:12px;font-weight:700;pointer-events:none}
+.unit.active .chrome-glyph{fill:var(--red)}
+.path-hint{fill:var(--muted);font-size:12px}
+button:focus-visible,[role="button"]:focus-visible{outline:2px solid var(--red);outline-offset:3px}
+@media(max-width:680px){.intro{gap:14px}.header-actions{gap:6px}#theme-toggle{padding:7px 10px}}
 
-
-.fold-hit{cursor:pointer}
-.fold-circle{fill:#fffefa;stroke:#c4cec7;stroke-width:1}
-.fold-glyph{font:700 13px 'Segoe UI',sans-serif;fill:#738078;pointer-events:none}
-.grammar-group.root .fold-circle{stroke:#d6a99b}
-.grammar-group.root .fold-glyph{fill:#aa381e}
 
 </style>
 </head>
 <body>
 <main>
-<header><div class="brand">文法？知るか！</div><span class="version">GRAPH EXPERIMENT · 006</span></header>
+<header><div class="brand">文法？知るか！</div><div class="header-actions"><button id="theme-toggle" type="button" aria-label="切换深色模式" aria-pressed="false">夜间模式</button><span class="version">GRAPH EXPERIMENT · 007</span></div></header>
 <section class="intro">
-<div><div class="eyebrow">GRAMMAR GRAPH</div><h1>点开一条关系，继续探索。</h1><p>点击虚线框展开关系，使用左上角的 − / + 折叠或展开内部字形；每个字形都能单独拖动，接续关系会跟随更新。</p></div>
+<div><div class="eyebrow">GRAMMAR GRAPH</div><h1>点开一条关系，继续探索。</h1><p>点击词尾，在同一个语法框内选择活用形；接入助动词时才新增分组。节点仍可拖动。</p></div>
 <nav class="switch" aria-label="起点"><button data-mode="kaku" aria-pressed="true">書く</button><button data-mode="mai" aria-pressed="false">まい</button></nav>
 </section>
 <section class="shell">
 <div class="tools"><div class="surface"><small>当前构造</small><output id="surface">書く</output></div><div class="actions"><button id="back" type="button">← 返回</button><button id="reset" type="button">重置</button></div></div>
 <div class="stage" id="stage">
-<svg id="graph" role="img" aria-label="逐级展开的日语语法关系图"></svg>
+<svg id="graph" role="group" aria-label="逐级展开的日语语法关系图"></svg>
 <aside class="popover" id="popover" hidden><button id="close" type="button" aria-label="关闭说明">✕</button><h2 id="info-title"></h2><p id="info-text"></p></aside>
 </div>
 <div class="trace" id="trace"></div>
 </section>
-<p class="foot">虚线框表示语法单位，框内的「書」「く」等是独立节点。活用变化会替换对应词尾节点；接入「ない」后，它也有自己的「な」「い」节点。拖动任一字形或整个分组，连线会跟随更新。点击分组左上角的 − / + 可折叠或展开内部字形。当前仍只使用少量语法样本。</p>
+<p class="foot">活用只改变当前虚线框中的词尾，接续才增加新语法单位。「まい」按意义和接续法继续展开，暂不填充例句。页面保留折叠和拖动。</p>
 </main>
-<script>
-"use strict";
-const graphs = {
- kaku: { direction:1, root:"kaku", nodes:{
-  kaku:{label:"書く",sub:"五段动词 · 基本形",pieces:["書","く"],form:"書く",info:"「書」是词干，「く」是活用词尾。点击展开不同活用形。",children:["ka","ki","ke","ko"]},
-  ka:{label:"か",sub:"未然形 · く → か",form:"書か",info:"「書く」的「く」变为「か」，可以接否定助动词「ない」等。",children:["nai","seru"]},
-  ki:{label:"き",sub:"连用形 · く → き",form:"書き",info:"五段动词的连用形，可接「ます」等。",children:["masu"]},
-  ke:{label:"け",sub:"假定形 · く → け",form:"書け",info:"假定形「書け」后接「ば」。",children:["ba"]},
-  ko:{label:"こ",sub:"未然形 · く → こ",form:"書こ",info:"意向表达中的未然形；接「う」后组成「書こう」。",children:["u"]},
-  nai:{label:"ない",sub:"否定助动词",pieces:["な","い"],form:"書かない",info:"「ない」是一个助动词，拆成「な｜い」展示活用。「い」可变为「かっ」「く」。",children:["katt","naku"]},
-  seru:{label:"せる",sub:"使役助动词",pieces:["せ","る"],form:"書かせる",info:"五段动词未然形「書か」接使役助动词「せる」。本例暂不继续。",children:[]},
-  katt:{label:"かっ",sub:"い → かっ · 连用形",form:"書かなかっ",info:"「な」保留，词尾「い」变化为「かっ」，为接过去助动词「た」做准备。",children:["ta"]},
-  naku:{label:"く",sub:"い → く · 连用形",form:"書かなく",info:"「ない」的连用形「なく」可以接「て」。",children:["te"]},
-  ta:{label:"た",sub:"过去助动词",form:"書かなかった",info:"拼接结果：書｜か｜な｜かっ｜た。",children:[]},
-  te:{label:"て",sub:"接续助词",form:"書かなくて",info:"「なく」后接「て」，得到「書かなくて」。",children:[]},
-  masu:{label:"ます",sub:"礼貌助动词",form:"書きます",info:"动词连用形后接「ます」。",children:[]},
-  ba:{label:"ば",sub:"接续助词",form:"書けば",info:"假定形后接「ば」。",children:[]},
-  u:{label:"う",sub:"意向助动词",form:"書こう",info:"意向表达「書こう」。",children:[]}
- }},
- mai: { direction:-1, root:"mai", nodes:{
-  mai:{label:"まい",sub:"否定意志・否定推量",form:"まい",info:"向左逐级探索「まい」允许的前接条件。此处根据样本分别列出动词和助动词。",children:["verb","aux"]},
-  verb:{label:"动词",sub:"先按活用类别分组",info:"五段动词、一段动词接「まい」时，样本中的要求不同。",children:["godan","ichidan"]},
-  aux:{label:"助动词",sub:"按各自活用形式",info:"部分助动词也能接「まい」。本例只展示使役助动词。",children:["seru"]},
-  godan:{label:"五段动词",sub:"活用类别",info:"本样本中，五段动词使用终止形接「まい」。",children:["terminal"]},
-  ichidan:{label:"一段动词",sub:"活用类别",info:"本样本中，一段动词可用未然形接「まい」。",children:["irrealis"]},
-  seru:{label:"使役「せる」",sub:"助动词类别",info:"使役助动词的未然形「せ」可接「まい」。",children:["seruIrrealis"]},
-  terminal:{label:"终止形",sub:"所需活用形",info:"例如五段动词「書く」的终止形。",children:["kakumai"]},
-  irrealis:{label:"未然形",sub:"所需活用形",info:"例如一段动词「食べる」的未然形「食べ」。",children:["tabemai"]},
-  seruIrrealis:{label:"未然形",sub:"所需活用形",info:"使役「せる」的未然形「せ」。",children:["kakasemai"]},
-  kakumai:{label:"書く",sub:"词例 · 终止形",form:"書くまい",info:"書く（五段动词终止形）＋まい。",children:[]},
-  tabemai:{label:"食べ",sub:"词例 · 未然形",form:"食べまい",info:"食べ（一段动词未然形）＋まい。",children:[]},
-  kakasemai:{label:"書かせ",sub:"词例 · 未然形",form:"書かせまい",info:"使役助动词「せる」的未然形接「まい」。",children:[]}
- }}
-};
-let mode="kaku",path=["kaku"],depthShown=0;
-const groupPositions={kaku:new Map(),mai:new Map()},atomPositions={kaku:new Map(),mai:new Map()},foldedGroups={kaku:new Set(),mai:new Set()};
-let visualGroups=new Map(),visualEdges=new Map(),dragging=null,suppressClick=null;
-const svg=document.getElementById("graph"),stage=document.getElementById("stage"),popover=document.getElementById("popover");
-const S="http://www.w3.org/2000/svg",ATOM_H=66,DX=270,DY=138;
-function data(){return graphs[mode]}
-function node(id){return data().nodes[id]}
-function groupLabel(id){if(mode==="kaku"){const labels={ka:"書か",ki:"書き",ke:"書け",ko:"書こ",katt:"なかっ",naku:"なく"};return labels[id]||node(id).label}if(mode==="mai"&&id==="seru")return "せる";return node(id).label}
-function groupTitle(id){if(mode==="kaku"){const titles={kaku:"五段动词 · 基本形",ka:"动词 · 未然形",ki:"动词 · 连用形",ke:"动词 · 假定形",ko:"动词 · 意向形前接形式",nai:"否定助动词 · 基本形",seru:"使役助动词 · 基本形",katt:"否定助动词 · 连用形",naku:"否定助动词 · 连用形",ta:"过去助动词",te:"接续助词",masu:"礼貌助动词",ba:"接续助词",u:"意向助动词"};return titles[id]||node(id).sub}return node(id).sub}
-function rawAtomsFor(id){if(mode==="kaku"){const map={kaku:[["stem","書","词干"],["ending","く","活用词尾"]],ka:[["stem","書","词干"],["ending","か","活用词尾"]],ki:[["stem","書","词干"],["ending","き","活用词尾"]],ke:[["stem","書","词干"],["ending","け","活用词尾"]],ko:[["stem","書","词干"],["ending","こ","活用词尾"]],nai:[["stem","な","助动词词干"],["ending","い","活用词尾"]],seru:[["stem","せ","助动词词干"],["ending","る","活用词尾"]],katt:[["stem","な","助动词词干"],["ending","かっ","活用词尾"]],naku:[["stem","な","助动词词干"],["ending","く","活用词尾"]]};if(map[id])return map[id].map(a=>({id:a[0],text:a[1],role:a[2]}))}let text=node(id).label;if(mode==="mai"&&id==="seru")text="せる";return [{id:"main",text,role:groupTitle(id)}]}
-function atomsFor(id){const atoms=rawAtomsFor(id);return foldedGroups[mode].has(id)&&atoms.length>1?[{id:"folded",text:groupLabel(id),role:"组合显示"}]:atoms}
-function toggleFold(id){if(foldedGroups[mode].has(id))foldedGroups[mode].delete(id);else foldedGroups[mode].add(id);render()}
-function el(tag,attrs={},txt){const e=document.createElementNS(S,tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,String(v));if(txt!==undefined)e.textContent=txt;return e}
-function atomKey(groupId,atomId){return groupId+"::"+atomId}
-function clickNode(id,depth){const item=node(id);if(path[depth]===id)depthShown=depthShown>depth?depth:(item.children.length?depth+1:depth);else{path=path.slice(0,depth).concat(id);depthShown=item.children.length?depth+1:depth}render()}
-function restart(next){mode=next;path=[data().root];depthShown=0;groupPositions[mode].clear();atomPositions[mode].clear();foldedGroups[mode].clear();suppressClick=null;render()}
-function showInfo(id){document.getElementById("info-title").textContent=groupLabel(id);document.getElementById("info-text").textContent=node(id).info||node(id).sub;popover.hidden=false}
-function makeLayoutItem(id,parent,depth,x,y,onPath){
- const offset=groupPositions[mode].get(id)||{x:0,y:0};
- const item={id,parent,depth,x:x+offset.x,y:y+offset.y,onPath:!!onPath,node:node(id)};
- const atoms=atomsFor(id),widths=atoms.map(a=>Math.max(68,a.text.length*21+20,(a.role||"").length*8+18));
- const total=widths.reduce((sum,w)=>sum+w,0)+Math.max(0,atoms.length-1)*14;let cursor=-total/2;
- item.atoms=atoms.map((atom,index)=>{const width=widths[index],baseX=cursor+width/2;cursor+=width+14;const pos=atomPositions[mode].get(atomKey(id,atom.id))||{x:0,y:0};return {id:atom.id,text:atom.text,role:atom.role||"",width,x:baseX+pos.x,y:5+pos.y}});
- const maxX=Math.max(0,...item.atoms.map(a=>Math.abs(a.x)+a.width/2+14)),titleHalf=(groupTitle(id).length*5.8)+15;
- item.halfW=Math.max(67,maxX,titleHalf);item.halfH=Math.max(58,...item.atoms.map(a=>Math.abs(a.y)+ATOM_H/2+12));item.width=item.halfW*2;item.height=item.halfH*2;return item;
-}
-function layout(){
- const items=[makeLayoutItem(data().root,null,0,0,0,true)];
- for(let depth=1;depth<=depthShown;depth++){
-  const parentId=path[depth-1],parent=items.find(a=>a.id===parentId&&a.depth===depth-1);if(!parent)break;
-  const children=node(parentId).children;
-  children.forEach((id,index)=>items.push(makeLayoutItem(id,parentId,depth,parent.x+DX*data().direction,parent.y+(index-(children.length-1)/2)*DY,path[depth]===id)));
- }
- return items;
-}
-function handleClick(id,depth,token){if(suppressClick===token){suppressClick=null;return}clickNode(id,depth)}
-function startDrag(type,item,atomId,event,element){
- if(event.target&&event.target.closest&&(event.target.closest(".info-hit")||event.target.closest(".fold-hit")))return;
- if(type==="group"&&event.target&&event.target.closest&&event.target.closest(".atom-node"))return;
- if(event.pointerType==="mouse"&&event.button!==0)return;
- const box=svg.getBoundingClientRect(),vb=svg.viewBox.baseVal,scale=Math.min(box.width/vb.width,box.height/vb.height)||1;
- const key=atomId?atomKey(item.id,atomId):item.id,current=(atomId?atomPositions[mode]:groupPositions[mode]).get(key)||{x:0,y:0};
- dragging={type,id:item.id,atomId,pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,initialX:current.x,initialY:current.y,scale,moved:false,element,baseClass:element.getAttribute("class")||"",token:atomId?"atom:"+item.id+":"+atomId:"group:"+item.id};
- try{element.setPointerCapture(event.pointerId)}catch(_){}
-}
-function moveDrag(event){
- if(!dragging||dragging.pointerId!==event.pointerId)return;
- const dx=(event.clientX-dragging.startX)/dragging.scale,dy=(event.clientY-dragging.startY)/dragging.scale;
- if(!dragging.moved&&Math.hypot(event.clientX-dragging.startX,event.clientY-dragging.startY)<5)return;
- dragging.moved=true;const key=dragging.atomId?atomKey(dragging.id,dragging.atomId):dragging.id;
- (dragging.atomId?atomPositions[mode]:groupPositions[mode]).set(key,{x:dragging.initialX+dx,y:dragging.initialY+dy});
- dragging.element.setAttribute("class",dragging.baseClass+" dragging");updateGeometry();
-}
-function finishDrag(event){if(!dragging||dragging.pointerId!==event.pointerId)return;suppressClick=dragging.moved?dragging.token:null;dragging.element.setAttribute("class",dragging.baseClass);dragging=null}
-function cancelDrag(event){if(!dragging||dragging.pointerId!==event.pointerId)return;dragging.element.setAttribute("class",dragging.baseClass);dragging=null;suppressClick=null}
-function groupGraphic(item){
- const kind=item.depth===0?"root":item.onPath?"active":"ghost",g=el("g",{class:"grammar-group "+kind,transform:"translate("+item.x+","+item.y+")",role:"group","aria-label":groupLabel(item.id)+" · "+groupTitle(item.id)});
- const frame=el("rect",{class:"group-frame",x:-item.halfW,y:-item.halfH,width:item.width,height:item.height});
- const label=el("text",{class:"group-label",x:0,y:-item.halfH+22,"text-anchor":"middle"},groupTitle(item.id));g.appendChild(frame);g.appendChild(label);
- let fold=null;
- if(rawAtomsFor(item.id).length>1){
-  fold=el("g",{class:"fold-hit",role:"button",tabindex:"0","aria-label":(foldedGroups[mode].has(item.id)?"展开":"折叠")+groupLabel(item.id),transform:"translate("+(-item.halfW+17)+","+(-item.halfH+17)+")"});
-  fold.appendChild(el("circle",{class:"fold-circle",cx:0,cy:0,r:8}));
-  fold.appendChild(el("text",{class:"fold-glyph",x:0,y:4,"text-anchor":"middle"},foldedGroups[mode].has(item.id)?"+":"−"));
-  fold.addEventListener("pointerdown",e=>e.stopPropagation());
-  fold.addEventListener("click",e=>{e.stopPropagation();toggleFold(item.id)});
-  fold.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();e.stopPropagation();toggleFold(item.id)}});
-  g.appendChild(fold);
- }
- const info=el("g",{class:"info-hit",role:"button",tabindex:"0","aria-label":"查看"+groupLabel(item.id)+"说明",transform:"translate("+(item.halfW-17)+","+(-item.halfH+17)+")"});
- info.appendChild(el("circle",{class:"group-info-circle",cx:0,cy:0,r:8}));info.appendChild(el("text",{class:"group-info-letter",x:0,y:4,"text-anchor":"middle"},"i"));
- info.addEventListener("pointerdown",e=>e.stopPropagation());info.addEventListener("click",e=>{e.stopPropagation();showInfo(item.id)});info.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();e.stopPropagation();showInfo(item.id)}});g.appendChild(info);
- const atomEls=new Map();item.atoms.forEach(atom=>{
-  const a=el("g",{class:"atom-node",transform:"translate("+atom.x+","+atom.y+")",role:"button",tabindex:"0","aria-label":atom.text+(atom.role?"，"+atom.role:"")});
-  const shape=el("rect",{class:"atom-shape",x:-atom.width/2,y:-ATOM_H/2,width:atom.width,height:ATOM_H,rx:10});a.appendChild(shape);
-  a.appendChild(el("text",{class:"atom-text",x:0,y:atom.role?-3:7,"text-anchor":"middle"},atom.text));if(atom.role)a.appendChild(el("text",{class:"atom-role",x:0,y:22,"text-anchor":"middle"},atom.role));
-  a.addEventListener("pointerdown",e=>{e.stopPropagation();startDrag("atom",item,atom.id,e,a)});a.addEventListener("pointermove",moveDrag);a.addEventListener("pointerup",finishDrag);a.addEventListener("pointercancel",cancelDrag);
-  a.addEventListener("click",()=>handleClick(item.id,item.depth,"atom:"+item.id+":"+atom.id));a.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();clickNode(item.id,item.depth)}});
-  g.appendChild(a);atomEls.set(atom.id,{element:a,shape});
- });
- g.addEventListener("pointerdown",e=>startDrag("group",item,null,e,g));g.addEventListener("pointermove",moveDrag);g.addEventListener("pointerup",finishDrag);g.addEventListener("pointercancel",cancelDrag);
- frame.addEventListener("click",()=>handleClick(item.id,item.depth,"group:"+item.id));label.addEventListener("click",()=>handleClick(item.id,item.depth,"group:"+item.id));
- g.addEventListener("keydown",e=>{if(e.target===g&&(e.key==="Enter"||e.key===" ")){e.preventDefault();clickNode(item.id,item.depth)}});
- return {element:g,frame,label,info,fold,atomEls,item,kind};
-}
-function edgePath(parent,child){const forward=data().direction===1,x1=forward?parent.x+parent.halfW:child.x+child.halfW,x2=forward?child.x-child.halfW:parent.x-parent.halfW,y1=forward?parent.y:child.y,y2=forward?child.y:parent.y,mid=(x1+x2)/2;return "M "+x1+" "+y1+" C "+mid+" "+y1+", "+mid+" "+y2+", "+x2+" "+y2}
-function edge(parent,child){return el("path",{class:"edge"+(child.onPath?" solid":""),d:edgePath(parent,child)})}
-function updateGeometry(){
- const items=layout(),lookup=new Map(items.map(item=>[item.id,item]));items.forEach(item=>{
-  const view=visualGroups.get(item.id);if(!view)return;view.element.setAttribute("transform","translate("+item.x+","+item.y+")");
-  view.frame.setAttribute("x",-item.halfW);view.frame.setAttribute("y",-item.halfH);view.frame.setAttribute("width",item.width);view.frame.setAttribute("height",item.height);view.label.setAttribute("y",-item.halfH+22);view.info.setAttribute("transform","translate("+(item.halfW-17)+","+(-item.halfH+17)+")");if(view.fold)view.fold.setAttribute("transform","translate("+(-item.halfW+17)+","+(-item.halfH+17)+")");
-  item.atoms.forEach(atom=>{const a=view.atomEls.get(atom.id);if(!a)return;a.element.setAttribute("transform","translate("+atom.x+","+atom.y+")");a.shape.setAttribute("x",-atom.width/2);a.shape.setAttribute("width",atom.width)});
-  if(item.parent){const line=visualEdges.get(item.id);if(line)line.setAttribute("d",edgePath(lookup.get(item.parent),item))}
- });
-}
-function render(){
- const items=layout(),lookup=new Map(items.map(item=>[item.id,item]));const minX=Math.min(...items.map(a=>a.x-a.halfW))-75,maxX=Math.max(...items.map(a=>a.x+a.halfW))+75,minY=Math.min(...items.map(a=>a.y-a.halfH))-55,maxY=Math.max(...items.map(a=>a.y+a.halfH))+55;
- const width=Math.max(900,maxX-minX),height=Math.max(430,maxY-minY),cx=(minX+maxX)/2,cy=(minY+maxY)/2,vx=cx-width/2,vy=cy-height/2;
- svg.setAttribute("viewBox",[vx,vy,width,height].join(" "));svg.style.width=Math.max(900,width)+"px";svg.replaceChildren();visualGroups=new Map();visualEdges=new Map();
- items.forEach(item=>{if(item.parent){const line=edge(lookup.get(item.parent),item);visualEdges.set(item.id,line);svg.appendChild(line)}});items.forEach(item=>{const view=groupGraphic(item);visualGroups.set(item.id,view);svg.appendChild(view.element)});
- const currentId=path[Math.min(depthShown,path.length-1)],current=node(currentId);document.getElementById("surface").textContent=current.form||groupLabel(currentId);document.getElementById("back").disabled=depthShown===0;
- document.querySelectorAll("[data-mode]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.mode===mode)));
- const bar=document.getElementById("trace");bar.replaceChildren();const hint=document.createElement("span");hint.className="hint";hint.textContent="探索路径";bar.appendChild(hint);
- path.slice(0,Math.min(depthShown+1,path.length)).forEach((id,i)=>{if(i){const arrow=document.createElement("span");arrow.className="arrow";arrow.textContent=mode==="mai"?"←":"→";bar.appendChild(arrow)}const button=document.createElement("button");button.type="button";button.textContent=groupLabel(id);button.addEventListener("click",()=>clickNode(id,i));bar.appendChild(button)});
- popover.hidden=true;const active=items.find(a=>a.id===currentId),activeX=(active.x-vx)/width*svg.clientWidth;stage.scrollLeft=Math.max(0,Math.min(svg.clientWidth-stage.clientWidth,activeX-stage.clientWidth/2));
-}
-document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",()=>restart(b.dataset.mode)));
-document.getElementById("back").addEventListener("click",()=>{if(depthShown>=path.length)depthShown=path.length-1;else if(path.length>1){path.pop();depthShown=path.length}else depthShown=0;render()});
-document.getElementById("reset").addEventListener("click",()=>restart(mode));document.getElementById("close").addEventListener("click",()=>{popover.hidden=true});render();
-</script>
+<script src="./morphology-demo.js"></script>
 </body>
 </html>
