@@ -91,6 +91,69 @@
     .grammar-source { font-size: 11px !important; margin-top: 15px !important; }
     .panel h3 { color: var(--muted); font-size: 12px; margin: 28px 0 11px; }
     .hint { margin-top: 8px; color: var(--muted); font-size: 11px; }
+    /* 三栏采用固定关系方向，不依赖图布局库。前接类别竖排，中间单位可折叠。 */
+    .explorer { display: grid; grid-template-columns: minmax(0, 1.04fr) minmax(290px, 1.32fr) minmax(0, 1.04fr); gap: 15px; align-items: stretch; }
+    .relation-panel, .focus-panel { border: 1px solid var(--line); border-radius: 16px; min-width: 0; background: var(--paper); padding: 22px 18px; }
+    .focus-panel { border-color: #cbb4a9; background: #fffdf9; box-shadow: 0 8px 28px rgba(68, 49, 39, .035); }
+    .region-heading { display: flex; flex-direction: column; align-items: start; gap: 8px; }
+    .eyebrow { font-size: 10px; letter-spacing: .12em; font-weight: 750; color: var(--accent); }
+    .region-heading h2 { margin: 0; font-size: 17px; }
+    .region-hint { margin: 11px 0 18px; color: var(--muted); font-size: 12px; line-height: 1.65; min-height: 38px; }
+    .relation-groups { display: flex; flex-direction: column; gap: 10px; }
+    .relation-group { border: 1px solid #e2e4de; border-radius: 11px; overflow: hidden; background: #fafbf8; }
+    .relation-group-button { display: flex; gap: 10px; align-items: center; width: 100%; border: 0; padding: 13px 12px; text-align: left; background: transparent; color: var(--ink); }
+    .relation-group-button:hover { background: #f4f4ef; }
+    .group-heading { display: grid; flex: 1; gap: 4px; min-width: 0; }
+    .group-heading strong { font-size: 13px; font-weight: 660; }
+    .group-heading small { color: var(--muted); line-height: 1.45; font-size: 11px; }
+    .group-count { font-size: 11px; color: var(--accent); background: var(--accent-bg); padding: 4px 7px; border-radius: 8px; }
+    .relation-group-button .fold-arrow { color: var(--muted); font-size: 15px; transition: transform .16s; }
+    .relation-group-button[aria-expanded="true"] .fold-arrow { transform: rotate(90deg); }
+    .relation-items { border-top: 1px solid #e7e9e3; padding: 7px; display: grid; gap: 7px; }
+    .relation-item { display: flex; flex-direction: column; gap: 5px; width: 100%; padding: 10px 11px; border-radius: 9px; border: 1px solid #e7e3db; text-align: left; background: #fff; }
+    .relation-item strong { font-size: 12px; font-weight: 650; color: var(--ink); }
+    .relation-item small { font-size: 11px; line-height: 1.55; color: var(--muted); }
+    .relation-item code { font-family: "Yu Gothic", "Noto Sans JP", sans-serif; font-size: 14px; color: var(--accent); }
+    button.relation-item { border-style: dashed; border-color: #c7aba0; cursor: pointer; }
+    button.relation-item:hover { background: var(--accent-bg); border-color: var(--accent); }
+    .relation-note { color: var(--muted); font-size: 12px; line-height: 1.7; margin: 4px 0; }
+    .focus-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 19px; padding: 18px; background: var(--accent-bg); border: 1px solid #d9b3a6; border-radius: 13px; color: var(--ink); width: 100%; text-align: left; }
+    .focus-toggle strong { display: block; font: 650 clamp(23px, 2.4vw, 34px)/1.4 "Yu Gothic", "Noto Sans JP", sans-serif; overflow-wrap: anywhere; }
+    .focus-toggle small { display: block; margin-top: 5px; color: var(--muted); font-size: 11px; }
+    .focus-chevron { flex: 0 0 auto; font-size: 19px; color: var(--accent); transition: transform .18s; }
+    .focus-toggle[aria-expanded="false"] .focus-chevron { transform: rotate(180deg); }
+    .focus-content { padding: 12px 2px 0; }
+    .focus-content[hidden] { display: none; }
+    .segment-label { font-size: 11px; color: var(--muted); margin: 10px 0; }
+    .focus-pieces { display: flex; flex-wrap: wrap; gap: 6px; }
+    .focus-pieces .piece { cursor: pointer; background: #fff; }
+    .focus-summary { color: var(--muted); font-size: 12px; line-height: 1.7; margin: 17px 0; }
+    .focus-panel .tabs { flex-wrap: wrap; }
+    .focus-panel .tabs button { padding: 7px 10px; }
+    .focus-panel .grammar-body { min-height: 80px; }
+    .focus-panel .grammar-row dt { flex-basis: 82px; width: 82px; }
+    .outgoing-option strong { color: var(--accent); font: 680 20px/1.2 "Yu Gothic", "Noto Sans JP", sans-serif; }
+    .history-section { margin-top: 34px; }
+    .history-heading { display: flex; justify-content: space-between; align-items: end; gap: 12px; margin-bottom: 14px; }
+    .history-heading h2 { font-size: 18px; margin: 7px 0 0; }
+    .board { padding: 25px 24px; min-height: 145px; }
+    .unit { min-height: 100px; }
+    .details { grid-template-columns: 1fr; margin-top: 12px; }
+    .details .panel { padding: 20px 24px; }
+    .details .panel h3 { margin-top: 14px; }
+    @media (max-width: 980px) {
+      .explorer { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); }
+      .relation-right { grid-column: 1 / -1; }
+      .relation-right .relation-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+    }
+    @media (max-width: 700px) {
+      .explorer { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+      .relation-right { grid-column: auto; }
+      .relation-right .relation-groups { display: flex; }
+      .relation-panel, .focus-panel { padding: 19px 16px; }
+      .region-hint { min-height: 0; margin-bottom: 12px; }
+      .history-heading { align-items: start; flex-direction: column; }
+    }
     @media (max-width: 700px) {
       .wrap { padding: 25px 16px 55px; }
       .intro { margin: 42px 0 16px; }
@@ -105,11 +168,11 @@
 </head>
 <body>
   <main class="wrap">
-    <header class="topline"><div class="brand">文法？知るか！</div><span class="tag">形态链实验 · 002</span></header>
+    <header class="topline"><div class="brand">文法？知るか！</div><span class="tag">形态链实验 · 003</span></header>
     <section class="intro">
       <div class="kicker">MORPHOLOGY PLAYGROUND</div>
       <h1>把语法拆开，再接下去。</h1>
-      <p>既可以从动词、形容词、形容动词出发，也可以从「まい」向前查看接续条件。点击半透明候选后，下一层会自动展开。</p>
+      <p>从词类与活用体系查看接续条件，再把语法单位拆开，沿着形态链继续探索。候选选中后，下一层自动展开。</p>
     </section>
     <section class="startbar" aria-label="选择探索起点">
       <div class="startbar-top"><span class="label">选择探索起点</span><span class="label">点击整个语法单位的标题，可以查看活用及前后接续</span></div>
@@ -123,28 +186,48 @@
         <button class="primary" id="full" type="button">查看完整长路径</button>
       </div>
     </section>
-    <section class="board" id="board" aria-label="语法形态关系图">
-      <div class="chain" id="chain"></div>
-    </section>
-    <section class="details">
-      <div class="panel grammar-panel" aria-label="语法单位详情">
-        <span class="label">GRAMMAR INSPECTOR · 语法单位</span>
-        <h2 id="grammar-title">五段动词</h2>
-        <p id="grammar-summary"></p>
-        <div class="tabs" role="tablist" aria-label="语法信息">
-          <button type="button" data-tab="forms" role="tab">活用</button>
-          <button type="button" data-tab="before" role="tab">前接</button>
-          <button type="button" data-tab="after" role="tab">后接</button>
+    <section class="explorer" aria-label="语法接续关系">
+      <aside class="relation-panel relation-left" aria-label="前接条件">
+        <div class="region-heading"><span class="eyebrow">01 · BEFORE</span><h2>前面可以接什么</h2></div>
+        <p class="region-hint">按词类与活用类型归纳。展开类别查看具体形式。</p>
+        <div id="incoming" class="relation-groups"></div>
+      </aside>
+      <section class="focus-panel" aria-label="选中的语法单位">
+        <div class="region-heading"><span class="eyebrow">02 · FOCUS</span><h2>当前语法单位</h2></div>
+        <button type="button" class="focus-toggle" id="focus-toggle" aria-expanded="true" aria-controls="focus-content">
+          <span><strong id="focus-title">書く</strong><small id="focus-subtitle">五段动词</small></span>
+          <span class="focus-chevron" aria-hidden="true">⌃</span>
+        </button>
+        <div id="focus-content" class="focus-content">
+          <div class="segment-label">内部形态 · 点击片段了解构造</div>
+          <div id="focus-pieces" class="focus-pieces"></div>
+          <p id="grammar-summary" class="focus-summary"></p>
+          <div class="tabs" role="tablist" aria-label="语法信息">
+            <button type="button" data-tab="forms" role="tab">活用</button>
+            <button type="button" data-tab="before" role="tab">前接</button>
+            <button type="button" data-tab="after" role="tab">后接</button>
+          </div>
+          <div id="grammar-body" class="grammar-body"></div>
+          <p id="grammar-source" class="grammar-source"></p>
         </div>
-        <div id="grammar-body" class="grammar-body"></div>
-        <p id="grammar-source" class="grammar-source"></p>
-      </div>
-      <div class="panel">
-        <h2>当前形态变化</h2>
-        <div id="rule-change">辞書形</div>
-        <p id="explanation"></p>
-        <h3>探索历史</h3>
-        <div class="trail" id="trail"></div>
+      </section>
+      <aside class="relation-panel relation-right" aria-label="后接条件">
+        <div class="region-heading"><span class="eyebrow">03 · AFTER</span><h2>接下来怎样变化</h2></div>
+        <p class="region-hint">虚线是尚未选择的分支；点击后立即生成下一段。</p>
+        <div id="outgoing" class="relation-groups"></div>
+      </aside>
+    </section>
+    <section class="history-section" aria-label="已经生成的形态链">
+      <div class="history-heading"><div><span class="eyebrow">COMPOSITION</span><h2>形态构造路径</h2></div><span class="label">点击路径中的语法单位，可以回到中央查看它</span></div>
+      <div class="board" id="board"><div class="chain" id="chain"></div></div>
+      <div class="details">
+        <div class="panel">
+          <h2>当前形态变化</h2>
+          <div id="rule-change">辞書形</div>
+          <p id="explanation"></p>
+          <h3>探索历史</h3>
+          <div class="trail" id="trail"></div>
+        </div>
       </div>
     </section>
     <p class="footnote">本页是结构与交互实验，并非完整接续词典。样本首先按用户整理的《日语.xlsx》「用言活用」「助动词活用」「助动词接续（总表）」等工作表录入，非穷尽关系。词形分割服务于可视化；语法分类需继续对照教材。长路径是示例，不代表公认的「最长词」。<br>另可参见：<a href="https://www.kyozai.jpf.go.jp/kyozai/material/BMA00076/ja/render.do" target="_blank" rel="noreferrer">日本国际交流基金 · 使役受身形</a>、<a href="https://www.kokugobunpou.com/%E5%8A%A9%E5%8B%95%E8%A9%9E/%E3%81%9F%E3%81%84-%E3%81%9F%E3%81%8C%E3%82%8B/" target="_blank" rel="noreferrer">たい的活用</a>、<a href="https://benesse.jp/kyouiku/teikitest/chu/japanese/japanese/c00484.html" target="_blank" rel="noreferrer">「ない」的词性辨析</a>。</p>
@@ -456,6 +539,83 @@ const grammar = {
     after: [["后接", "尚未建立完整规则表"]],
     source: "本页样本" }
 };
+// 前接归类：词类、活用类型与要求的活用形分别写明。
+// 来源是现有 Excel 中的样本接续表；只展示已选取的规则，不自动推断全部词条。
+const incomingGroups = {
+  godan: [],
+  ichidan: [],
+  adjective: [],
+  adjectival: [],
+  mai: [
+    { title: "动词", note: "同属动词，也需区分活用类别", items: [
+      { label: "五段动词", form: "终止形", example: "書く ＋ まい", target: "kakumai" },
+      { label: "一段动词", form: "未然形", example: "食べ ＋ まい", target: "tabemai" }
+    ] },
+    { title: "助动词", note: "按各自活用规定接续", items: [
+      { label: "使役助动词「せる」", form: "未然形", example: "書かせ ＋ まい", target: "kakasemai" },
+      { label: "被动助动词「られる」", form: "未然形", example: "られ ＋ まい（本页尚无完整路径）" }
+    ] }
+  ],
+  tai: [
+    { title: "动词", note: "取连用形", items: [
+      { label: "五段动词", form: "连用形", example: "書き ＋ たい" },
+      { label: "一段动词", form: "连用形", example: "食べ ＋ たい" }
+    ] },
+    { title: "助动词", note: "接允许后续愿望形式的连用形", items: [
+      { label: "被动助动词「られる」", form: "连用形", example: "書かせられ ＋ たい" }
+    ] }
+  ],
+  naiAux: [
+    { title: "动词", note: "要求未然形", items: [
+      { label: "五段动词", form: "未然形", example: "書か ＋ ない" },
+      { label: "一段动词", form: "未然形", example: "食べ ＋ ない" }
+    ] }
+  ],
+  naiAdj: [
+    { title: "形容词型活用", note: "共享活用类型，不代表无条件互接", items: [
+      { label: "形容词", form: "连用形（く）", example: "高く ＋ ない" },
+      { label: "形容词型助动词「たい」", form: "连用形（く）", example: "書きたく ＋ ない" }
+    ] }
+  ],
+  ta: [
+    { title: "形容词型活用", note: "按接过去「た」时的连用形", items: [
+      { label: "形容词", form: "连用形（かっ）", example: "高かっ ＋ た" },
+      { label: "形容词型助动词「たい」", form: "连用形（かっ）", example: "書きたかっ ＋ た" },
+      { label: "否定助动词「ない」", form: "连用形（かっ）", example: "書かなかっ ＋ た" }
+    ] },
+    { title: "动词及其他助动词", note: "也有不同连用形及音便接续，本样本未穷尽", items: [
+      { label: "一段动词", form: "连用形", example: "食べ ＋ た" }
+    ] }
+  ],
+  rashii: [
+    { title: "动词", note: "终止形", items: [
+      { label: "五段动词", form: "终止形", example: "書く ＋ らしい" },
+      { label: "一段动词", form: "终止形", example: "食べる ＋ らしい" }
+    ] },
+    { title: "形容词型活用", note: "再区分词类和具体形式", items: [
+      { label: "形容词", form: "终止形", example: "高い ＋ らしい" },
+      { label: "否定助动词「ない」", form: "终止形", example: "書かない ＋ らしい" },
+      { label: "愿望助动词「たい」", form: "终止形", example: "書きたい ＋ らしい" }
+    ] }
+  ],
+  seru: [
+    { title: "动词", note: "本样本对应五段动词", items: [
+      { label: "五段动词", form: "未然形", example: "書か ＋ せる" }
+    ] }
+  ],
+  rareru: [
+    { title: "助动词", note: "使役被动样本", items: [
+      { label: "使役助动词「せる」", form: "未然形", example: "書かせ ＋ られる" }
+    ] }
+  ],
+  masu: [
+    { title: "动词", note: "取连用形", items: [
+      { label: "五段动词", form: "连用形", example: "書き ＋ ます" },
+      { label: "一段动词", form: "连用形", example: "食べ ＋ ます" }
+    ] }
+  ]
+};
+
 const starters = [
   { id: "base", label: "書く", type: "五段动词" },
   { id: "taberu", label: "食べる", type: "一段动词" },
@@ -467,51 +627,67 @@ const starters = [
 const longRoute = ["base", "ka", "caus", "causStem", "passive", "passiveStem", "tai", "taku", "wishNai", "wishNakatt", "wishPast", "long"];
 let startId = "base";
 let history = [{ id: "base", change: "書く · 基本形" }];
-let expanded = false;
+let expanded = true;
 let selectedUnit = "godan";
+let selectedIndex = 0;
 let selectedTab = "forms";
+let focusOpen = true;
+let openGroups = new Set([0]);
+
 const current = () => scenes[history[history.length - 1].id];
 const written = (scene) => scene.units.map((u) => u.parts.join("")).join("");
-
 function make(tag, className, text) {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
+  const element = document.createElement(tag);
+  if (className) element.className = className;
+  if (text !== undefined) element.textContent = text;
+  return element;
 }
-function selectUnit(key) {
+function selectUnit(key, index) {
   selectedUnit = key;
+  selectedIndex = index;
   selectedTab = "forms";
+  focusOpen = true;
+  openGroups = new Set([0]);
   render(false);
 }
 function setStart(id) {
   startId = id;
   history = [{ id, change: written(scenes[id]) + " · 起点" }];
-  selectedUnit = scenes[id].units[scenes[id].units.length - 1].key;
+  selectedIndex = scenes[id].units.length - 1;
+  selectedUnit = scenes[id].units[selectedIndex].key;
   selectedTab = "forms";
+  focusOpen = true;
   expanded = true;
+  openGroups = new Set([0]);
   render(false);
 }
 function advance(option) {
   history.push({ id: option.target, change: option.change });
-  selectedUnit = current().units[current().units.length - 1].key;
+  selectedIndex = current().units.length - 1;
+  selectedUnit = current().units[selectedIndex].key;
   selectedTab = "forms";
-  expanded = !!current().options?.length; // 选中虚节点后，直接展开新一层候选
+  focusOpen = true;
+  openGroups = new Set([0]);
+  expanded = !!current().options?.length;
   render(true);
 }
 function moveTo(index) {
   history = history.slice(0, index + 1);
-  selectedUnit = current().units[current().units.length - 1].key;
+  selectedIndex = current().units.length - 1;
+  selectedUnit = current().units[selectedIndex].key;
   selectedTab = "forms";
+  focusOpen = true;
+  openGroups = new Set([0]);
   expanded = !!current().options?.length;
   render(true);
 }
+function activeUnit() {
+  const units = current().units;
+  return units[selectedIndex]?.key === selectedUnit ?
+    units[selectedIndex] : units.find((u) => u.key === selectedUnit) ?? units[units.length - 1];
+}
 function renderGrammar() {
   const info = grammar[selectedUnit] ?? grammar.other;
-  document.getElementById("grammar-title").textContent = info.title;
-  document.getElementById("grammar-summary").textContent = info.summary;
-  document.getElementById("grammar-source").textContent = "资料来源：" + info.source + "。仅展示已核对的样本关系。";
-  const labels = { forms: "活用", before: "前接", after: "后接" };
   const body = document.getElementById("grammar-body");
   body.replaceChildren();
   const dl = make("dl", "");
@@ -528,6 +704,147 @@ function renderGrammar() {
     button.tabIndex = active ? 0 : -1;
   });
 }
+function renderFocus() {
+  const info = grammar[selectedUnit] ?? grammar.other;
+  const chosen = activeUnit();
+  document.getElementById("focus-title").textContent = chosen.parts.join("");
+  document.getElementById("focus-subtitle").textContent = chosen.name;
+  document.getElementById("grammar-summary").textContent = info.summary;
+  document.getElementById("grammar-source").textContent = "示例依据：" + info.source + "。接续列表仅列已录入的样本。";
+  const toggle = document.getElementById("focus-toggle");
+  toggle.setAttribute("aria-expanded", String(focusOpen));
+  document.getElementById("focus-content").hidden = !focusOpen;
+  const pieces = document.getElementById("focus-pieces");
+  pieces.replaceChildren();
+  chosen.parts.forEach((part, index) => {
+    const button = make("button", "piece" + (index === chosen.parts.length - 1 ? " is-focus" : ""), part);
+    button.type = "button";
+    button.title = "查看构词片段和当前语法规则";
+    button.addEventListener("click", () => {
+      document.getElementById("explanation").textContent =
+        "片段「" + part + "」属于「" + chosen.name + "」。结合活用表查看其形态变化。";
+    });
+    pieces.appendChild(button);
+  });
+  renderGrammar();
+}
+function getIncomingGroups() {
+  if (Object.prototype.hasOwnProperty.call(incomingGroups, selectedUnit)) {
+    return incomingGroups[selectedUnit];
+  }
+  const entries = (grammar[selectedUnit] ?? grammar.other).before || [];
+  return entries.length ? [{
+    title: "已录入的前接条件",
+    note: "尚未细分语法类别",
+    items: entries.map(([label, example]) => ({ label, form: "", example }))
+  }] : [];
+}
+function renderIncoming() {
+  const container = document.getElementById("incoming");
+  container.replaceChildren();
+  const groups = getIncomingGroups();
+  const scene = current();
+  if (!groups.length) {
+    container.appendChild(make("p", "relation-note", "当前尚未整理这个语法单位的前接类别，不表示它没有其他接续关系。"));
+    return;
+  }
+  groups.forEach((group, index) => {
+    const section = make("section", "relation-group");
+    const toggle = make("button", "relation-group-button");
+    toggle.type = "button";
+    toggle.setAttribute("aria-expanded", String(openGroups.has(index)));
+    const heading = make("span", "group-heading");
+    heading.appendChild(make("strong", "", group.title));
+    heading.appendChild(make("small", "", group.note));
+    toggle.appendChild(heading);
+    toggle.appendChild(make("span", "group-count", String(group.items.length)));
+    toggle.appendChild(make("span", "fold-arrow", "›"));
+    toggle.addEventListener("click", () => {
+      if (openGroups.has(index)) openGroups.delete(index);
+      else openGroups.add(index);
+      renderIncoming();
+    });
+    section.appendChild(toggle);
+    if (openGroups.has(index)) {
+      const items = make("div", "relation-items");
+      group.items.forEach((entry) => {
+        // 只有当前确实能组成该示例时，候选才能点击；其余只陈列语法规则。
+        const candidate = scene.direction === "before" && selectedUnit === "mai" &&
+          scene.options?.find((option) => option.target === entry.target);
+        const item = make(candidate && expanded ? "button" : "div", "relation-item");
+        if (candidate && expanded) item.type = "button";
+        item.appendChild(make("strong", "", entry.label));
+        if (entry.form) item.appendChild(make("small", "", "要求：" + entry.form));
+        item.appendChild(make("code", "", entry.example));
+        if (candidate && expanded) {
+          item.title = "选择此形式，生成实际接续路径";
+          item.addEventListener("click", () => advance(candidate));
+        }
+        items.appendChild(item);
+      });
+      section.appendChild(items);
+    }
+    container.appendChild(section);
+  });
+}
+function renderOutgoing() {
+  const container = document.getElementById("outgoing");
+  container.replaceChildren();
+  const scene = current();
+  const isActiveTail = current().units[selectedIndex]?.key === selectedUnit &&
+    selectedIndex === scene.units.length - 1;
+  const options = isActiveTail && scene.direction !== "before" && expanded ? (scene.options ?? []) : [];
+  if (options.length) {
+    const grouped = [
+      { title: "活用变化", note: "替换活用尾", items: options.filter((op) => op.change.includes("→")) },
+      { title: "后接成分", note: "添加新的语法单位", items: options.filter((op) => !op.change.includes("→")) }
+    ].filter((group) => group.items.length);
+    grouped.forEach((group) => {
+      const section = make("section", "relation-group");
+      const heading = make("div", "relation-group-button");
+      const label = make("span", "group-heading");
+      label.appendChild(make("strong", "", group.title));
+      label.appendChild(make("small", "", group.note));
+      heading.appendChild(label);
+      section.appendChild(heading);
+      const items = make("div", "relation-items");
+      group.items.forEach((option) => {
+        const button = make("button", "relation-item outgoing-option");
+        button.type = "button";
+        button.title = option.change;
+        button.appendChild(make("strong", "", option.text));
+        button.appendChild(make("small", "", option.desc));
+        button.addEventListener("click", () => advance(option));
+        items.appendChild(button);
+      });
+      section.appendChild(items);
+      container.appendChild(section);
+    });
+  } else {
+    if (scene.options?.length && isActiveTail && !expanded && scene.direction !== "before") {
+      const btn = make("button", "relation-item", "点击这里展开下一步候选 →");
+      btn.type = "button";
+      btn.addEventListener("click", () => { expanded = true; render(false); });
+      container.appendChild(btn);
+      return;
+    }
+    const rows = (grammar[selectedUnit] ?? grammar.other).after ?? [];
+    container.appendChild(make("p", "relation-note", isActiveTail ?
+      "当前分支没有演示下一步；下列是规则表中的其他样本。" :
+      "这里展示选中单位的一般接续关系。请点击形态链末尾继续构造。"));
+    if (!rows.length) return;
+    const section = make("section", "relation-group");
+    const items = make("div", "relation-items");
+    rows.forEach(([label, example]) => {
+      const item = make("div", "relation-item");
+      item.appendChild(make("strong", "", label));
+      item.appendChild(make("small", "", example));
+      items.appendChild(item);
+    });
+    section.appendChild(items);
+    container.appendChild(section);
+  }
+}
 function render(scrollRight) {
   const scene = current();
   const chain = document.getElementById("chain");
@@ -538,75 +855,41 @@ function render(scrollRight) {
   document.getElementById("rule-change").textContent = history[history.length - 1].change;
   document.getElementById("back").disabled = history.length === 1;
 
-  const makeChoiceDock = () => {
-    const dock = make("div", "choice-wrap" + (scene.direction === "before" ? " backward" : ""));
-    dock.appendChild(make("div", "choice-label", scene.direction === "before" ? "可放在「まい」前面的形式 ←" : "选择后，自动展开下一层 →"));
-    const choices = make("div", "choices");
-    scene.options.forEach((option) => {
-      const candidate = make("button", "choice");
-      candidate.type = "button";
-      candidate.appendChild(make("strong", "", option.text));
-      candidate.appendChild(make("small", "", option.desc));
-      candidate.title = option.change;
-      candidate.addEventListener("click", () => advance(option));
-      choices.appendChild(candidate);
-    });
-    dock.appendChild(choices);
-    return dock;
-  };
-  // 反向探索时，前接候选在左，语法单位在右。
-  if (scene.direction === "before" && scene.options?.length && expanded) {
-    chain.appendChild(makeChoiceDock());
-    chain.appendChild(make("span", "connector backward"));
-  }
-  scene.units.forEach((u, ui) => {
-    if (ui > 0) chain.appendChild(make("span", "connector"));
-    const box = make("div", "unit" + (u.key === selectedUnit ? " is-selected" : ""));
+  scene.units.forEach((u, index) => {
+    if (index > 0) chain.appendChild(make("span", "connector"));
+    const box = make("div", "unit" + (index === selectedIndex ? " is-selected" : ""));
     const heading = make("button", "unit-name", u.name);
     heading.type = "button";
-    heading.title = "查看整个语法单位的活用及接续";
-    heading.addEventListener("click", () => selectUnit(u.key));
+    heading.title = "在中间展开此语法单位";
+    heading.addEventListener("click", () => selectUnit(u.key, index));
     box.appendChild(heading);
     const row = make("div", "pieces");
-    u.parts.forEach((part, pi) => {
-      const focus = (scene.direction === "before" || ui === scene.units.length - 1) &&
-        pi === u.parts.length - 1 && !!scene.options?.length;
+    u.parts.forEach((part, partIndex) => {
+      const focus = index === scene.units.length - 1 &&
+        partIndex === u.parts.length - 1 && !!scene.options?.length;
       const button = make("button", "piece" + (focus ? " is-focus" : ""), part);
       button.type = "button";
-      button.title = focus ? "点击切换候选" : "查看这个片段所属的语法单位";
+      button.title = focus ? "切换下一层候选" : "查看所在语法单位";
       button.setAttribute("aria-expanded", String(focus && expanded));
       button.addEventListener("click", () => {
-        selectedUnit = u.key;
-        selectedTab = "forms";
-        if (focus) expanded = !expanded;
-        render(false);
+        selectUnit(u.key, index);
+        if (focus) { expanded = !expanded; render(false); }
       });
       row.appendChild(button);
     });
     box.appendChild(row);
-    box.title = "点击单位边框或标题，可查看整体语法信息";
+    box.title = "点击单位边框查看整体语法";
     box.addEventListener("click", (event) => {
-      if (event.target === box || event.target === row) selectUnit(u.key);
+      if (event.target === box || event.target === row) selectUnit(u.key, index);
     });
     chain.appendChild(box);
   });
-
-  if (scene.options?.length) {
-    if (scene.direction !== "before") {
-      chain.appendChild(make("span", "connector"));
-      if (expanded) chain.appendChild(makeChoiceDock());
-      else chain.appendChild(make("div", "invitation", "点击红色词尾，查看候选 →"));
-    } else if (!expanded) {
-      chain.appendChild(make("div", "invitation", "← 点击红色助动词，查看前接形式"));
-    }
-  } else {
-    chain.appendChild(make("div", "invitation", "当前样本分支到此结束，可切换起点"));
-  }
-
+  if (!scene.options?.length) chain.appendChild(make("div", "invitation", "样本路径到此结束"));
   const trail = document.getElementById("trail");
   trail.replaceChildren();
   history.forEach((entry, index) => {
-    const button = make("button", index === history.length - 1 ? "current" : "", (index === 0 ? "起点" : index + ". ") + entry.change);
+    const button = make("button", index === history.length - 1 ? "current" : "",
+      (index === 0 ? "起点" : index + ". ") + entry.change);
     button.type = "button";
     button.title = "回到这一步";
     button.addEventListener("click", () => moveTo(index));
@@ -622,27 +905,37 @@ function render(scrollRight) {
     button.addEventListener("click", () => setStart(id));
     startersEl.appendChild(button);
   });
-  renderGrammar();
+  renderIncoming();
+  renderFocus();
+  renderOutgoing();
   if (scrollRight) {
     requestAnimationFrame(() => {
       const board = document.getElementById("board");
-      board.scrollLeft = scene.direction === "before" ? 0 : board.scrollWidth;
+      board.scrollLeft = board.scrollWidth;
     });
   }
 }
-
 if (typeof document !== "undefined") {
-  document.getElementById("back").addEventListener("click", () => { if (history.length > 1) moveTo(history.length - 2); });
+  document.getElementById("back").addEventListener("click", () => {
+    if (history.length > 1) moveTo(history.length - 2);
+  });
   document.getElementById("reset").addEventListener("click", () => setStart(startId));
+  document.getElementById("focus-toggle").addEventListener("click", () => {
+    focusOpen = !focusOpen;
+    renderFocus();
+  });
   document.getElementById("full").addEventListener("click", () => {
     startId = "base";
     history = longRoute.map((id, index) => {
       const previous = scenes[longRoute[index - 1]];
-      const chosen = previous?.options?.find((x) => x.target === id);
+      const chosen = previous?.options?.find((option) => option.target === id);
       return { id, change: chosen ? chosen.change : "書く · 起点" };
     });
     selectedUnit = "rashii";
+    selectedIndex = current().units.length - 1;
     selectedTab = "forms";
+    focusOpen = true;
+    openGroups = new Set([0]);
     expanded = false;
     render(true);
   });
