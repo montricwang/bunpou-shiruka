@@ -1,0 +1,31 @@
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# 私人配置与临时产物
+.env
+.env.*
+!.env.example
+*.log
+.cache/
+tmp/
+
+# 常见构建与依赖缓存（不代表已经选定技术栈）
+node_modules/
+.venv/
+__pycache__/
+.pytest_cache/
+dist/
+build/
+
+# 原始资料及派生数据仅存本地；保留空目录占位符
+/data/**
+!/data/raw/
+!/data/processed/
+!/data/raw/.gitkeep
+!/data/processed/.gitkeep
