@@ -59,6 +59,14 @@ assert.equal(new Set(endings.map(e=>e.children.filter(c=>c.attrs.class==="choice
 assert.ok(endings.every(e=>e.attrs.transform.includes(",")&&e.attrs.transform.match(/translate\(112,/)),
   "候选在右侧同一竖列");
 assert.equal(findClass(groups()[0],"choice-guide").length,8);
+assert.equal(findClass(groups()[0],"suffix-frame").length,1);
+const expanded=T.getLayout().find(x=>x.id==="verb");
+assert.ok(expanded.suffixBox);
+assert.ok(expanded.suffixBox.x>expanded.atoms[0].x,"活用列在词干右侧");
+assert.ok(expanded.choices.every((x,i,list)=>i===0||(x.x===list[i-1].x&&x.y>list[i-1].y)),
+  "八个词尾按照活用形纵向排列");
+assert.ok(expanded.minY<expanded.suffixBox.y&&expanded.maxY>expanded.suffixBox.y+expanded.suffixBox.height,
+  "词尾分组始终位于所属语法框内");
 assert.ok(Number(findClass(group("五段动词"),"unit-frame")[0].attrs.height)>initialHeight);
 choice(group("五段动词"),"か").click();
 assert.equal(surface(),"書か");

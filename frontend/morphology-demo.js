@@ -219,16 +219,20 @@ function measure(model){
    y:wideChoices?(i-(model.choices.length-1)/2)*61+14:
      106+Math.floor(i/2)*57
  }));
+ const suffixBox=wideChoices?{
+   x:choicePlaced[0].x-106,y:choicePlaced[0].y-58,
+   width:212,height:choicePlaced[choicePlaced.length-1].y-choicePlaced[0].y+102
+ }:null;
  const titleWidth=model.title.length*6.8+38;
  const contentWidth=Math.max(...placed.map(a=>Math.abs(a.x)+a.width/2+20));
  const halfW=Math.max(123,titleWidth/2,contentWidth,wideChoices?230:choicePlaced.length?125:0);
  const minY=Math.min(-75,...placed.map(a=>a.y-39),
-   ...(wideChoices?choicePlaced.map(c=>c.y-34):[]));
+   ...(wideChoices?[suffixBox.y-30]:[]));
  const maxY=Math.max(72,...placed.map(a=>a.y+39),
-   ...(wideChoices?choicePlaced.map(c=>c.y+36):
+   ...(wideChoices?[suffixBox.y+suffixBox.height+15]:
      choicePlaced.length?[156+(Math.ceil(choicePlaced.length/2)-1)*57]:[]));
  return {...model,x:groupX,y:groupY,atoms:placed,choices:choicePlaced,
-   halfW,minY,maxY,width:halfW*2,height:maxY-minY};
+   suffixBox,halfW,minY,maxY,width:halfW*2,height:maxY-minY};
 }
 const getLayout=()=>models().map(measure);
 const svgElement=(tag,attrs={},value)=>{
@@ -327,8 +331,19 @@ function createUnit(unit){
   "aria-label":unit.title});
  const frame=svgElement("rect",{class:"unit-frame",x:-unit.halfW,y:unit.minY,width:unit.width,height:unit.height});
  root.appendChild(frame);
- const title=svgElement("text",{class:"unit-title",y:unit.minY+25,"text-anchor":"middle"},unit.title);
+ const isVerbExpanded=unit.id==="verb"&&!!unit.suffixBox;
+ const title=svgElement("text",{class:"unit-title",x:isVerbExpanded?-unit.halfW+20:0,
+   y:unit.minY+25,"text-anchor":isVerbExpanded?"start":"middle"},unit.title);
  root.appendChild(title);
+ let suffixOutline=null,suffixCaption=null;
+ if(unit.suffixBox){
+   suffixOutline=svgElement("rect",{class:"suffix-frame",x:unit.suffixBox.x,y:unit.suffixBox.y,
+     width:unit.suffixBox.width,height:unit.suffixBox.height});
+   root.appendChild(suffixOutline);
+   suffixCaption=svgElement("text",{class:"suffix-caption",x:unit.suffixBox.x+15,
+     y:unit.suffixBox.y+17},"活用词尾");
+   root.appendChild(suffixCaption);
+ }
  if(unit.onClick){
   bindDrag(frame,unit,null);
   frame.addEventListener("click",()=>guardClick("group:"+unit.id,unit.onClick));
@@ -393,7 +408,7 @@ function createUnit(unit){
    root.appendChild(c);options.push(c);
   });
  }
- return {unit,root,frame,title,chrome,atomViews,options,guideViews};
+ return {unit,root,frame,title,chrome,atomViews,options,guideViews,suffixOutline,suffixCaption};
 }
 function updatePositions(){
  const units=getLayout(),layoutMap=new Map(units.map(u=>[u.id,u]));
@@ -403,6 +418,15 @@ function updatePositions(){
   view.frame.setAttribute("x",-unit.halfW);view.frame.setAttribute("y",unit.minY);
   view.frame.setAttribute("width",unit.width);view.frame.setAttribute("height",unit.height);
   view.title.setAttribute("y",unit.minY+25);
+  if(unit.suffixBox&&view.suffixOutline){
+    const box=unit.suffixBox;
+    view.suffixOutline.setAttribute("x",box.x);
+    view.suffixOutline.setAttribute("y",box.y);
+    view.suffixOutline.setAttribute("width",box.width);
+    view.suffixOutline.setAttribute("height",box.height);
+    view.suffixCaption.setAttribute("x",box.x+15);
+    view.suffixCaption.setAttribute("y",box.y+17);
+  }
   view.chrome.forEach((item,i)=>{
    const left=mode==="kaku"&&unit.id!=="tail"&&i===1;
    item.setAttribute("transform","translate("+(left?-unit.halfW+19:unit.halfW-19)+","+(unit.minY+19)+")");
