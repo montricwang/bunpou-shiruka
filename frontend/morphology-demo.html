@@ -67,13 +67,42 @@ output{font-size:clamp(20px,2.3vw,29px);font-family:"Yu Gothic","Noto Sans JP",s
 .popover button{border:0;background:none;color:var(--muted);position:absolute;right:10px;top:9px;padding:6px}
 .foot{font-size:12px;line-height:1.8;color:var(--muted);margin:17px 3px}
 @media(max-width:680px){main{padding:21px 14px}.intro{margin:43px 0 23px}.tools{padding:13px}.stage{min-height:430px}#graph{height:430px}.trace{padding:11px 13px}}
+
+/* Atom-level grammar graph: dashed frames group independently movable nodes. */
+.grammar-group{touch-action:none}
+.grammar-group.root .group-frame{fill:rgba(170,56,30,.035);stroke:#aa381e;stroke-width:1.7;stroke-dasharray:7 5;rx:15}
+.grammar-group.active .group-frame{fill:#fff7f3;stroke:#c58c7b;stroke-width:1.7;stroke-dasharray:7 5;rx:15}
+.grammar-group.ghost .group-frame{fill:rgba(248,249,245,.72);stroke:#bbc5bf;stroke-width:1.5;stroke-dasharray:6 5;rx:15}
+.grammar-group.dragging{cursor:grabbing}
+.group-label{font:600 12px 'Segoe UI','Microsoft YaHei',sans-serif;fill:#66726d;pointer-events:none}
+.grammar-group.root .group-label{fill:#aa381e}
+.atom-node{cursor:grab;touch-action:none}
+.atom-node.dragging{cursor:grabbing}
+.atom-shape{fill:#fffefa;stroke:#b7c2bb;stroke-width:1.4;rx:10}
+.atom-node:hover .atom-shape{stroke:#aa381e;stroke-width:2}
+.grammar-group.ghost .atom-shape{fill:#fcfcf9;stroke:#c5ccc6}
+.atom-text{font:650 22px 'Yu Gothic','Noto Sans JP',sans-serif;fill:#293335;pointer-events:none}
+.atom-role{font:10px 'Segoe UI','Microsoft YaHei',sans-serif;fill:#7b8680;pointer-events:none}
+.group-info-circle{fill:#fffefa;stroke:#c4cec7;stroke-width:1}
+.group-info-letter{font:700 10px 'Segoe UI',sans-serif;fill:#738078;pointer-events:none}
+.info-hit{cursor:pointer}
+.grammar-group.root .group-info-circle{stroke:#d6a99b}
+.grammar-group.root .group-info-letter{fill:#aa381e}
+
+
+.fold-hit{cursor:pointer}
+.fold-circle{fill:#fffefa;stroke:#c4cec7;stroke-width:1}
+.fold-glyph{font:700 13px 'Segoe UI',sans-serif;fill:#738078;pointer-events:none}
+.grammar-group.root .fold-circle{stroke:#d6a99b}
+.grammar-group.root .fold-glyph{fill:#aa381e}
+
 </style>
 </head>
 <body>
 <main>
-<header><div class="brand">文法？知るか！</div><span class="version">GRAPH EXPERIMENT · 005</span></header>
+<header><div class="brand">文法？知るか！</div><span class="version">GRAPH EXPERIMENT · 006</span></header>
 <section class="intro">
-<div><div class="eyebrow">GRAMMAR GRAPH</div><h1>点开一条关系，继续探索。</h1><p>点击节点展开关系，拖动节点整理布局；「書く」在活用时才显示词干与词尾的分界。</p></div>
+<div><div class="eyebrow">GRAMMAR GRAPH</div><h1>点开一条关系，继续探索。</h1><p>点击虚线框展开关系，使用左上角的 − / + 折叠或展开内部字形；每个字形都能单独拖动，接续关系会跟随更新。</p></div>
 <nav class="switch" aria-label="起点"><button data-mode="kaku" aria-pressed="true">書く</button><button data-mode="mai" aria-pressed="false">まい</button></nav>
 </section>
 <section class="shell">
@@ -84,7 +113,7 @@ output{font-size:clamp(20px,2.3vw,29px);font-family:"Yu Gothic","Noto Sans JP",s
 </div>
 <div class="trace" id="trace"></div>
 </section>
-<p class="foot">初始「書く」是一个完整节点，进入活用时才在节点内部显示「書｜く」。拖动节点时连线会跟随移动，重置可恢复默认布局。仍只使用少量语法样本。</p>
+<p class="foot">虚线框表示语法单位，框内的「書」「く」等是独立节点。活用变化会替换对应词尾节点；接入「ない」后，它也有自己的「な」「い」节点。拖动任一字形或整个分组，连线会跟随更新。点击分组左上角的 − / + 可折叠或展开内部字形。当前仍只使用少量语法样本。</p>
 </main>
 <script>
 "use strict";
@@ -120,188 +149,115 @@ const graphs = {
   kakasemai:{label:"書かせ",sub:"词例 · 未然形",form:"書かせまい",info:"使役助动词「せる」的未然形接「まい」。",children:[]}
  }}
 };
-let mode="kaku";
-let path=["kaku"];
-let depthShown=0;
-const positions={kaku:new Map(),mai:new Map()};
-let visualNodes=new Map(),visualEdges=new Map();
-let dragging=null;
-let suppressClick=null;
-const svg=document.getElementById("graph");
-const stage=document.getElementById("stage");
-const popover=document.getElementById("popover");
-const S="http://www.w3.org/2000/svg", W=166, H=88, DX=217, DY=116;
+let mode="kaku",path=["kaku"],depthShown=0;
+const groupPositions={kaku:new Map(),mai:new Map()},atomPositions={kaku:new Map(),mai:new Map()},foldedGroups={kaku:new Set(),mai:new Set()};
+let visualGroups=new Map(),visualEdges=new Map(),dragging=null,suppressClick=null;
+const svg=document.getElementById("graph"),stage=document.getElementById("stage"),popover=document.getElementById("popover");
+const S="http://www.w3.org/2000/svg",ATOM_H=66,DX=270,DY=138;
 function data(){return graphs[mode]}
 function node(id){return data().nodes[id]}
-function el(tag,attrs={},txt){
- const e=document.createElementNS(S,tag);
- for(const [k,v] of Object.entries(attrs))e.setAttribute(k,String(v));
- if(txt!==undefined)e.textContent=txt;
- return e;
-}
-function clickNode(id,depth){
- const item=node(id);
- if(path[depth]===id) depthShown=depthShown>depth?depth:(item.children.length?depth+1:depth);
- else {path=path.slice(0,depth).concat(id);depthShown=item.children.length?depth+1:depth}
- render();
-}
-function restart(next){
- mode=next;path=[data().root];depthShown=0;
- positions[mode].clear();suppressClick=null;render();
-}
-function showInfo(id){
- const item=node(id);
- document.getElementById("info-title").textContent=item.label;
- document.getElementById("info-text").textContent=item.info;
- popover.hidden=false;
+function groupLabel(id){if(mode==="kaku"){const labels={ka:"書か",ki:"書き",ke:"書け",ko:"書こ",katt:"なかっ",naku:"なく"};return labels[id]||node(id).label}if(mode==="mai"&&id==="seru")return "せる";return node(id).label}
+function groupTitle(id){if(mode==="kaku"){const titles={kaku:"五段动词 · 基本形",ka:"动词 · 未然形",ki:"动词 · 连用形",ke:"动词 · 假定形",ko:"动词 · 意向形前接形式",nai:"否定助动词 · 基本形",seru:"使役助动词 · 基本形",katt:"否定助动词 · 连用形",naku:"否定助动词 · 连用形",ta:"过去助动词",te:"接续助词",masu:"礼貌助动词",ba:"接续助词",u:"意向助动词"};return titles[id]||node(id).sub}return node(id).sub}
+function rawAtomsFor(id){if(mode==="kaku"){const map={kaku:[["stem","書","词干"],["ending","く","活用词尾"]],ka:[["stem","書","词干"],["ending","か","活用词尾"]],ki:[["stem","書","词干"],["ending","き","活用词尾"]],ke:[["stem","書","词干"],["ending","け","活用词尾"]],ko:[["stem","書","词干"],["ending","こ","活用词尾"]],nai:[["stem","な","助动词词干"],["ending","い","活用词尾"]],seru:[["stem","せ","助动词词干"],["ending","る","活用词尾"]],katt:[["stem","な","助动词词干"],["ending","かっ","活用词尾"]],naku:[["stem","な","助动词词干"],["ending","く","活用词尾"]]};if(map[id])return map[id].map(a=>({id:a[0],text:a[1],role:a[2]}))}let text=node(id).label;if(mode==="mai"&&id==="seru")text="せる";return [{id:"main",text,role:groupTitle(id)}]}
+function atomsFor(id){const atoms=rawAtomsFor(id);return foldedGroups[mode].has(id)&&atoms.length>1?[{id:"folded",text:groupLabel(id),role:"组合显示"}]:atoms}
+function toggleFold(id){if(foldedGroups[mode].has(id))foldedGroups[mode].delete(id);else foldedGroups[mode].add(id);render()}
+function el(tag,attrs={},txt){const e=document.createElementNS(S,tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,String(v));if(txt!==undefined)e.textContent=txt;return e}
+function atomKey(groupId,atomId){return groupId+"::"+atomId}
+function clickNode(id,depth){const item=node(id);if(path[depth]===id)depthShown=depthShown>depth?depth:(item.children.length?depth+1:depth);else{path=path.slice(0,depth).concat(id);depthShown=item.children.length?depth+1:depth}render()}
+function restart(next){mode=next;path=[data().root];depthShown=0;groupPositions[mode].clear();atomPositions[mode].clear();foldedGroups[mode].clear();suppressClick=null;render()}
+function showInfo(id){document.getElementById("info-title").textContent=groupLabel(id);document.getElementById("info-text").textContent=node(id).info||node(id).sub;popover.hidden=false}
+function makeLayoutItem(id,parent,depth,x,y,onPath){
+ const offset=groupPositions[mode].get(id)||{x:0,y:0};
+ const item={id,parent,depth,x:x+offset.x,y:y+offset.y,onPath:!!onPath,node:node(id)};
+ const atoms=atomsFor(id),widths=atoms.map(a=>Math.max(68,a.text.length*21+20,(a.role||"").length*8+18));
+ const total=widths.reduce((sum,w)=>sum+w,0)+Math.max(0,atoms.length-1)*14;let cursor=-total/2;
+ item.atoms=atoms.map((atom,index)=>{const width=widths[index],baseX=cursor+width/2;cursor+=width+14;const pos=atomPositions[mode].get(atomKey(id,atom.id))||{x:0,y:0};return {id:atom.id,text:atom.text,role:atom.role||"",width,x:baseX+pos.x,y:5+pos.y}});
+ const maxX=Math.max(0,...item.atoms.map(a=>Math.abs(a.x)+a.width/2+14)),titleHalf=(groupTitle(id).length*5.8)+15;
+ item.halfW=Math.max(67,maxX,titleHalf);item.halfH=Math.max(58,...item.atoms.map(a=>Math.abs(a.y)+ATOM_H/2+12));item.width=item.halfW*2;item.height=item.halfH*2;return item;
 }
 function layout(){
- const offset=id=>positions[mode].get(id)||{x:0,y:0};
- const rootOffset=offset(data().root);
- const items=[{id:data().root,parent:null,depth:0,x:rootOffset.x,y:rootOffset.y,baseY:0,onPath:true}];
+ const items=[makeLayoutItem(data().root,null,0,0,0,true)];
  for(let depth=1;depth<=depthShown;depth++){
-  const parentId=path[depth-1];
-  const parent=items.find(a=>a.id===parentId&&a.depth===depth-1);
-  if(!parent)break;
+  const parentId=path[depth-1],parent=items.find(a=>a.id===parentId&&a.depth===depth-1);if(!parent)break;
   const children=node(parentId).children;
-  children.forEach((id,index)=>{
-   const baseY=parent.baseY+(index-(children.length-1)/2)*DY;
-   const pos=offset(id);
-   items.push({id,parent:parentId,depth,x:depth*DX*data().direction+pos.x,y:baseY+pos.y,baseY,onPath:path[depth]===id});
-  });
+  children.forEach((id,index)=>items.push(makeLayoutItem(id,parentId,depth,parent.x+DX*data().direction,parent.y+(index-(children.length-1)/2)*DY,path[depth]===id)));
  }
  return items;
 }
-function nodeGraphic(n){
- const item=node(n.id),kind=n.depth===0?"root":n.onPath?"active":"ghost";
- const g=el("g",{class:"node "+kind,transform:"translate("+n.x+","+n.y+")",role:"button",tabindex:"0","aria-label":item.label+" "+item.sub});
- g.appendChild(el("rect",{class:"shape",x:-W/2,y:-H/2,width:W,height:H}));
- // 初始整个动词是一块；进入活用后才在同一节点内部划分词干和词尾。
- const verbEnding=mode==="kaku"&&["ka","ki","ke","ko"].includes(n.id)&&n.onPath;
- const parts=n.id==="kaku"&&depthShown>0?["書","く"]:
-   verbEnding?["書",item.label]:
-   item.pieces&&n.onPath&&depthShown>n.depth?item.pieces:null;
- if(parts&&parts.length===2){
-  g.appendChild(el("rect",{class:"segment-bg",x:-53,y:-25,width:106,height:36}));
-  g.appendChild(el("line",{class:"segment-divider",x1:0,y1:-25,x2:0,y2:11}));
-  parts.forEach((part,i)=>g.appendChild(el("text",{
-   class:"mainlabel",x:i===0?-26:26,y:0,"text-anchor":"middle"
-  },part)));
- } else g.appendChild(el("text",{class:"mainlabel",x:0,y:0,"text-anchor":"middle"},item.label));
- g.appendChild(el("text",{class:"sublabel",x:0,y:26,"text-anchor":"middle"},item.sub));
- const info=el("g",{class:"info-hit",role:"button",tabindex:"0","aria-label":"查看"+item.label+"说明"});
- info.appendChild(el("circle",{class:"information",cx:69,cy:-30,r:9}));
- info.appendChild(el("text",{class:"infoletter",x:69,y:-26,"text-anchor":"middle"},"i"));
- info.addEventListener("click",e=>{e.stopPropagation();showInfo(n.id)});
- info.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();e.stopPropagation();showInfo(n.id)}});
- g.appendChild(info);
- g.addEventListener("pointerdown",event=>{
-  if(event.target.closest?.(".info-hit"))return;
-  if(event.pointerType==="mouse"&&event.button!==0)return;
-  const box=svg.getBoundingClientRect(),vb=svg.viewBox.baseVal;
-  const scale=Math.min(box.width/vb.width,box.height/vb.height)||1;
-  const start=positions[mode].get(n.id)||{x:0,y:0};
-  dragging={id:n.id,pointerId:event.pointerId,x:event.clientX,y:event.clientY,
-    initialX:start.x,initialY:start.y,scale,moved:false};
-  suppressClick=null;
-  g.setPointerCapture?.(event.pointerId);
- });
- g.addEventListener("pointermove",event=>{
-  if(!dragging||dragging.id!==n.id||dragging.pointerId!==event.pointerId)return;
-  const dx=(event.clientX-dragging.x)/dragging.scale;
-  const dy=(event.clientY-dragging.y)/dragging.scale;
-  if(!dragging.moved&&Math.hypot(event.clientX-dragging.x,event.clientY-dragging.y)<5)return;
-  dragging.moved=true;
-  positions[mode].set(n.id,{x:dragging.initialX+dx,y:dragging.initialY+dy});
-  g.setAttribute("class","node "+kind+" dragging");
-  updateGeometry();
- });
- function finishDrag(event){
-  if(!dragging||dragging.id!==n.id||dragging.pointerId!==event.pointerId)return;
-  suppressClick=dragging.moved?n.id:null;
-  dragging=null;
-  g.setAttribute("class","node "+kind);
+function handleClick(id,depth,token){if(suppressClick===token){suppressClick=null;return}clickNode(id,depth)}
+function startDrag(type,item,atomId,event,element){
+ if(event.target&&event.target.closest&&(event.target.closest(".info-hit")||event.target.closest(".fold-hit")))return;
+ if(type==="group"&&event.target&&event.target.closest&&event.target.closest(".atom-node"))return;
+ if(event.pointerType==="mouse"&&event.button!==0)return;
+ const box=svg.getBoundingClientRect(),vb=svg.viewBox.baseVal,scale=Math.min(box.width/vb.width,box.height/vb.height)||1;
+ const key=atomId?atomKey(item.id,atomId):item.id,current=(atomId?atomPositions[mode]:groupPositions[mode]).get(key)||{x:0,y:0};
+ dragging={type,id:item.id,atomId,pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,initialX:current.x,initialY:current.y,scale,moved:false,element,baseClass:element.getAttribute("class")||"",token:atomId?"atom:"+item.id+":"+atomId:"group:"+item.id};
+ try{element.setPointerCapture(event.pointerId)}catch(_){}
+}
+function moveDrag(event){
+ if(!dragging||dragging.pointerId!==event.pointerId)return;
+ const dx=(event.clientX-dragging.startX)/dragging.scale,dy=(event.clientY-dragging.startY)/dragging.scale;
+ if(!dragging.moved&&Math.hypot(event.clientX-dragging.startX,event.clientY-dragging.startY)<5)return;
+ dragging.moved=true;const key=dragging.atomId?atomKey(dragging.id,dragging.atomId):dragging.id;
+ (dragging.atomId?atomPositions[mode]:groupPositions[mode]).set(key,{x:dragging.initialX+dx,y:dragging.initialY+dy});
+ dragging.element.setAttribute("class",dragging.baseClass+" dragging");updateGeometry();
+}
+function finishDrag(event){if(!dragging||dragging.pointerId!==event.pointerId)return;suppressClick=dragging.moved?dragging.token:null;dragging.element.setAttribute("class",dragging.baseClass);dragging=null}
+function cancelDrag(event){if(!dragging||dragging.pointerId!==event.pointerId)return;dragging.element.setAttribute("class",dragging.baseClass);dragging=null;suppressClick=null}
+function groupGraphic(item){
+ const kind=item.depth===0?"root":item.onPath?"active":"ghost",g=el("g",{class:"grammar-group "+kind,transform:"translate("+item.x+","+item.y+")",role:"group","aria-label":groupLabel(item.id)+" · "+groupTitle(item.id)});
+ const frame=el("rect",{class:"group-frame",x:-item.halfW,y:-item.halfH,width:item.width,height:item.height});
+ const label=el("text",{class:"group-label",x:0,y:-item.halfH+22,"text-anchor":"middle"},groupTitle(item.id));g.appendChild(frame);g.appendChild(label);
+ let fold=null;
+ if(rawAtomsFor(item.id).length>1){
+  fold=el("g",{class:"fold-hit",role:"button",tabindex:"0","aria-label":(foldedGroups[mode].has(item.id)?"展开":"折叠")+groupLabel(item.id),transform:"translate("+(-item.halfW+17)+","+(-item.halfH+17)+")"});
+  fold.appendChild(el("circle",{class:"fold-circle",cx:0,cy:0,r:8}));
+  fold.appendChild(el("text",{class:"fold-glyph",x:0,y:4,"text-anchor":"middle"},foldedGroups[mode].has(item.id)?"+":"−"));
+  fold.addEventListener("pointerdown",e=>e.stopPropagation());
+  fold.addEventListener("click",e=>{e.stopPropagation();toggleFold(item.id)});
+  fold.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();e.stopPropagation();toggleFold(item.id)}});
+  g.appendChild(fold);
  }
- g.addEventListener("pointerup",finishDrag);
- g.addEventListener("pointercancel",event=>{
-  if(dragging&&dragging.pointerId===event.pointerId){
-   suppressClick=null;dragging=null;g.setAttribute("class","node "+kind);
-  }
+ const info=el("g",{class:"info-hit",role:"button",tabindex:"0","aria-label":"查看"+groupLabel(item.id)+"说明",transform:"translate("+(item.halfW-17)+","+(-item.halfH+17)+")"});
+ info.appendChild(el("circle",{class:"group-info-circle",cx:0,cy:0,r:8}));info.appendChild(el("text",{class:"group-info-letter",x:0,y:4,"text-anchor":"middle"},"i"));
+ info.addEventListener("pointerdown",e=>e.stopPropagation());info.addEventListener("click",e=>{e.stopPropagation();showInfo(item.id)});info.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();e.stopPropagation();showInfo(item.id)}});g.appendChild(info);
+ const atomEls=new Map();item.atoms.forEach(atom=>{
+  const a=el("g",{class:"atom-node",transform:"translate("+atom.x+","+atom.y+")",role:"button",tabindex:"0","aria-label":atom.text+(atom.role?"，"+atom.role:"")});
+  const shape=el("rect",{class:"atom-shape",x:-atom.width/2,y:-ATOM_H/2,width:atom.width,height:ATOM_H,rx:10});a.appendChild(shape);
+  a.appendChild(el("text",{class:"atom-text",x:0,y:atom.role?-3:7,"text-anchor":"middle"},atom.text));if(atom.role)a.appendChild(el("text",{class:"atom-role",x:0,y:22,"text-anchor":"middle"},atom.role));
+  a.addEventListener("pointerdown",e=>{e.stopPropagation();startDrag("atom",item,atom.id,e,a)});a.addEventListener("pointermove",moveDrag);a.addEventListener("pointerup",finishDrag);a.addEventListener("pointercancel",cancelDrag);
+  a.addEventListener("click",()=>handleClick(item.id,item.depth,"atom:"+item.id+":"+atom.id));a.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();clickNode(item.id,item.depth)}});
+  g.appendChild(a);atomEls.set(atom.id,{element:a,shape});
  });
- g.addEventListener("click",()=>{
-  if(suppressClick===n.id){suppressClick=null;return}
-  clickNode(n.id,n.depth);
- });
- g.addEventListener("keydown",e=>{if(e.target===g&&(e.key==="Enter"||e.key===" ")){e.preventDefault();clickNode(n.id,n.depth)}});
- return g;
+ g.addEventListener("pointerdown",e=>startDrag("group",item,null,e,g));g.addEventListener("pointermove",moveDrag);g.addEventListener("pointerup",finishDrag);g.addEventListener("pointercancel",cancelDrag);
+ frame.addEventListener("click",()=>handleClick(item.id,item.depth,"group:"+item.id));label.addEventListener("click",()=>handleClick(item.id,item.depth,"group:"+item.id));
+ g.addEventListener("keydown",e=>{if(e.target===g&&(e.key==="Enter"||e.key===" ")){e.preventDefault();clickNode(item.id,item.depth)}});
+ return {element:g,frame,label,info,fold,atomEls,item,kind};
 }
-function edgePath(parent,child){
- const forward=data().direction===1;
- const x1=forward?parent.x+W/2:child.x+W/2,x2=forward?child.x-W/2:parent.x-W/2;
- const y1=forward?parent.y:child.y,y2=forward?child.y:parent.y,mid=(x1+x2)/2;
- return "M "+x1+" "+y1+" C "+mid+" "+y1+", "+mid+" "+y2+", "+x2+" "+y2;
-}
-function edge(parent,child){
- return el("path",{class:"edge"+(child.onPath?" solid":""),d:edgePath(parent,child)});
-}
+function edgePath(parent,child){const forward=data().direction===1,x1=forward?parent.x+parent.halfW:child.x+child.halfW,x2=forward?child.x-child.halfW:parent.x-parent.halfW,y1=forward?parent.y:child.y,y2=forward?child.y:parent.y,mid=(x1+x2)/2;return "M "+x1+" "+y1+" C "+mid+" "+y1+", "+mid+" "+y2+", "+x2+" "+y2}
+function edge(parent,child){return el("path",{class:"edge"+(child.onPath?" solid":""),d:edgePath(parent,child)})}
 function updateGeometry(){
- const items=layout(),lookup=new Map(items.map(item=>[item.id,item]));
- items.forEach(item=>{
-  visualNodes.get(item.id)?.setAttribute("transform","translate("+item.x+","+item.y+")");
-  if(item.parent)visualEdges.get(item.id)?.setAttribute("d",edgePath(lookup.get(item.parent),item));
+ const items=layout(),lookup=new Map(items.map(item=>[item.id,item]));items.forEach(item=>{
+  const view=visualGroups.get(item.id);if(!view)return;view.element.setAttribute("transform","translate("+item.x+","+item.y+")");
+  view.frame.setAttribute("x",-item.halfW);view.frame.setAttribute("y",-item.halfH);view.frame.setAttribute("width",item.width);view.frame.setAttribute("height",item.height);view.label.setAttribute("y",-item.halfH+22);view.info.setAttribute("transform","translate("+(item.halfW-17)+","+(-item.halfH+17)+")");if(view.fold)view.fold.setAttribute("transform","translate("+(-item.halfW+17)+","+(-item.halfH+17)+")");
+  item.atoms.forEach(atom=>{const a=view.atomEls.get(atom.id);if(!a)return;a.element.setAttribute("transform","translate("+atom.x+","+atom.y+")");a.shape.setAttribute("x",-atom.width/2);a.shape.setAttribute("width",atom.width)});
+  if(item.parent){const line=visualEdges.get(item.id);if(line)line.setAttribute("d",edgePath(lookup.get(item.parent),item))}
  });
 }
 function render(){
- const items=layout(),lookup=new Map(items.map(a=>[a.id,a]));
- const minX=Math.min(...items.map(a=>a.x))-157,maxX=Math.max(...items.map(a=>a.x))+157;
- const minY=Math.min(...items.map(a=>a.y))-128,maxY=Math.max(...items.map(a=>a.y))+128;
- const width=Math.max(900,maxX-minX),height=Math.max(430,maxY-minY);
- const centerX=(minX+maxX)/2,centerY=(minY+maxY)/2;
- svg.setAttribute("viewBox",[centerX-width/2,centerY-height/2,width,height].join(" "));
- svg.style.width=Math.max(900,width)+"px";
- svg.replaceChildren();
- visualNodes=new Map();visualEdges=new Map();
- items.forEach(item=>{
-  if(item.parent){
-   const line=edge(lookup.get(item.parent),item);
-   visualEdges.set(item.id,line);
-   svg.appendChild(line);
-  }
- });
- items.forEach(item=>{
-  const graphics=nodeGraphic(item);
-  visualNodes.set(item.id,graphics);
-  svg.appendChild(graphics);
- });
- const id=path[Math.min(depthShown,path.length-1)];
- const current=node(id);
- document.getElementById("surface").textContent=current.form||(mode==="mai"?"まい · "+current.label:"書く");
- document.getElementById("back").disabled=depthShown===0;
- for(const button of document.querySelectorAll("[data-mode]"))button.setAttribute("aria-pressed",String(button.dataset.mode===mode));
- const bar=document.getElementById("trace");bar.replaceChildren();
- const hint=document.createElement("span");hint.className="hint";hint.textContent="探索路径";bar.appendChild(hint);
- const reached=path.slice(0,Math.min(depthShown+1,path.length));
- reached.forEach((id,i)=>{
-  if(i){const arrow=document.createElement("span");arrow.className="arrow";arrow.textContent=mode==="mai"?"←":"→";bar.appendChild(arrow)}
-  const button=document.createElement("button");button.type="button";button.textContent=node(id).label;
-  button.addEventListener("click",()=>clickNode(id,i));bar.appendChild(button);
- });
- popover.hidden=true;
- // 小屏幕始终让当前实节点出现在可视区中央，而不把整张长图强行缩小。
- const active=items.find(a=>a.id===id&&a.onPath);
- const activeX=(active.x-(centerX-width/2))/width*svg.clientWidth;
- stage.scrollLeft=Math.max(0,Math.min(svg.clientWidth-stage.clientWidth,activeX-stage.clientWidth/2));
+ const items=layout(),lookup=new Map(items.map(item=>[item.id,item]));const minX=Math.min(...items.map(a=>a.x-a.halfW))-75,maxX=Math.max(...items.map(a=>a.x+a.halfW))+75,minY=Math.min(...items.map(a=>a.y-a.halfH))-55,maxY=Math.max(...items.map(a=>a.y+a.halfH))+55;
+ const width=Math.max(900,maxX-minX),height=Math.max(430,maxY-minY),cx=(minX+maxX)/2,cy=(minY+maxY)/2,vx=cx-width/2,vy=cy-height/2;
+ svg.setAttribute("viewBox",[vx,vy,width,height].join(" "));svg.style.width=Math.max(900,width)+"px";svg.replaceChildren();visualGroups=new Map();visualEdges=new Map();
+ items.forEach(item=>{if(item.parent){const line=edge(lookup.get(item.parent),item);visualEdges.set(item.id,line);svg.appendChild(line)}});items.forEach(item=>{const view=groupGraphic(item);visualGroups.set(item.id,view);svg.appendChild(view.element)});
+ const currentId=path[Math.min(depthShown,path.length-1)],current=node(currentId);document.getElementById("surface").textContent=current.form||groupLabel(currentId);document.getElementById("back").disabled=depthShown===0;
+ document.querySelectorAll("[data-mode]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.mode===mode)));
+ const bar=document.getElementById("trace");bar.replaceChildren();const hint=document.createElement("span");hint.className="hint";hint.textContent="探索路径";bar.appendChild(hint);
+ path.slice(0,Math.min(depthShown+1,path.length)).forEach((id,i)=>{if(i){const arrow=document.createElement("span");arrow.className="arrow";arrow.textContent=mode==="mai"?"←":"→";bar.appendChild(arrow)}const button=document.createElement("button");button.type="button";button.textContent=groupLabel(id);button.addEventListener("click",()=>clickNode(id,i));bar.appendChild(button)});
+ popover.hidden=true;const active=items.find(a=>a.id===currentId),activeX=(active.x-vx)/width*svg.clientWidth;stage.scrollLeft=Math.max(0,Math.min(svg.clientWidth-stage.clientWidth,activeX-stage.clientWidth/2));
 }
 document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",()=>restart(b.dataset.mode)));
-document.getElementById("back").addEventListener("click",()=>{
- if(depthShown>=path.length){depthShown=path.length-1}
- else if(path.length>1){path.pop();depthShown=path.length}
- else depthShown=0;
- render();
-});
-document.getElementById("reset").addEventListener("click",()=>restart(mode));
-document.getElementById("close").addEventListener("click",()=>{popover.hidden=true});
-render();
+document.getElementById("back").addEventListener("click",()=>{if(depthShown>=path.length)depthShown=path.length-1;else if(path.length>1){path.pop();depthShown=path.length}else depthShown=0;render()});
+document.getElementById("reset").addEventListener("click",()=>restart(mode));document.getElementById("close").addEventListener("click",()=>{popover.hidden=true});render();
 </script>
 </body>
 </html>
