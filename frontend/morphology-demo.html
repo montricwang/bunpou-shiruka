@@ -34,7 +34,8 @@ output{font-size:clamp(20px,2.3vw,29px);font-family:"Yu Gothic","Noto Sans JP",s
 #graph{display:block;height:540px}
 .edge{stroke:#b8c0bb;stroke-width:1.7;fill:none;stroke-dasharray:5 6}
 .edge.solid{stroke:var(--red);stroke-width:2.2;stroke-dasharray:none}
-.node{cursor:pointer}
+.node{cursor:grab;touch-action:none}
+.node.dragging{cursor:grabbing}
 .node .shape{fill:#fffefa;stroke:#bcc4bd;stroke-width:1.4;rx:13}
 .node.ghost .shape{fill:#f8f9f5;stroke:#bac4c0;stroke-dasharray:5 5}
 .node.active .shape{fill:#fff4ef;stroke:#c59b8b;stroke-width:1.8}
@@ -46,8 +47,10 @@ output{font-size:clamp(20px,2.3vw,29px);font-family:"Yu Gothic","Noto Sans JP",s
 .node .mainlabel{font:650 22px "Yu Gothic","Noto Sans JP",sans-serif}
 .node .sublabel{font:11px "Segoe UI","Microsoft YaHei",sans-serif;fill:var(--muted)}
 .node.root .sublabel{fill:#ffffffb5}
-.node .piece{fill:#fff;stroke:#dfc9bf;rx:6}
-.node.root .piece{fill:#ffffff16;stroke:#ffffff88}
+.node .segment-bg{fill:#fff;stroke:#dfc9bf;stroke-width:1;rx:7}
+.node.root .segment-bg{fill:#ffffff16;stroke:#ffffff88}
+.node .segment-divider{stroke:#dfc9bf;stroke-width:1}
+.node.root .segment-divider{stroke:#ffffff88}
 .node .information{stroke:#bdc9c3;fill:#fffefa}
 .node.root .information{stroke:#ffffff80;fill:#ffffff20}
 .node .infoletter{font:700 10px "Segoe UI",sans-serif;fill:#7e8984}
@@ -68,9 +71,9 @@ output{font-size:clamp(20px,2.3vw,29px);font-family:"Yu Gothic","Noto Sans JP",s
 </head>
 <body>
 <main>
-<header><div class="brand">文法？知るか！</div><span class="version">GRAPH EXPERIMENT · 004</span></header>
+<header><div class="brand">文法？知るか！</div><span class="version">GRAPH EXPERIMENT · 005</span></header>
 <section class="intro">
-<div><div class="eyebrow">GRAMMAR GRAPH</div><h1>点开一条关系，继续探索。</h1><p>点击实节点出现候选，点击半透明节点展开下一层。小圆点提供简短语法说明。</p></div>
+<div><div class="eyebrow">GRAMMAR GRAPH</div><h1>点开一条关系，继续探索。</h1><p>点击节点展开关系，拖动节点整理布局；「書く」在活用时才显示词干与词尾的分界。</p></div>
 <nav class="switch" aria-label="起点"><button data-mode="kaku" aria-pressed="true">書く</button><button data-mode="mai" aria-pressed="false">まい</button></nav>
 </section>
 <section class="shell">
@@ -81,7 +84,7 @@ output{font-size:clamp(20px,2.3vw,29px);font-family:"Yu Gothic","Noto Sans JP",s
 </div>
 <div class="trace" id="trace"></div>
 </section>
-<p class="foot">目前仅演示「書く」的词尾变化、否定接续与「まい」的前接分类。已选择的路径保持实线，其余仅显示当前一层候选。数据是少量语法样本，尚未建立完整规则库。</p>
+<p class="foot">初始「書く」是一个完整节点，进入活用时才在节点内部显示「書｜く」。拖动节点时连线会跟随移动，重置可恢复默认布局。仍只使用少量语法样本。</p>
 </main>
 <script>
 "use strict";
@@ -120,6 +123,10 @@ const graphs = {
 let mode="kaku";
 let path=["kaku"];
 let depthShown=0;
+const positions={kaku:new Map(),mai:new Map()};
+let visualNodes=new Map(),visualEdges=new Map();
+let dragging=null;
+let suppressClick=null;
 const svg=document.getElementById("graph");
 const stage=document.getElementById("stage");
 const popover=document.getElementById("popover");
@@ -139,7 +146,8 @@ function clickNode(id,depth){
  render();
 }
 function restart(next){
- mode=next;path=[data().root];depthShown=0;render();
+ mode=next;path=[data().root];depthShown=0;
+ positions[mode].clear();suppressClick=null;render();
 }
 function showInfo(id){
  const item=node(id);
@@ -148,13 +156,19 @@ function showInfo(id){
  popover.hidden=false;
 }
 function layout(){
- const items=[{id:data().root,parent:null,depth:0,x:0,y:0,onPath:true}];
+ const offset=id=>positions[mode].get(id)||{x:0,y:0};
+ const rootOffset=offset(data().root);
+ const items=[{id:data().root,parent:null,depth:0,x:rootOffset.x,y:rootOffset.y,baseY:0,onPath:true}];
  for(let depth=1;depth<=depthShown;depth++){
   const parentId=path[depth-1];
   const parent=items.find(a=>a.id===parentId&&a.depth===depth-1);
   if(!parent)break;
   const children=node(parentId).children;
-  children.forEach((id,index)=>items.push({id,parent:parentId,depth,x:depth*DX*data().direction,y:parent.y+(index-(children.length-1)/2)*DY,onPath:path[depth]===id}));
+  children.forEach((id,index)=>{
+   const baseY=parent.baseY+(index-(children.length-1)/2)*DY;
+   const pos=offset(id);
+   items.push({id,parent:parentId,depth,x:depth*DX*data().direction+pos.x,y:baseY+pos.y,baseY,onPath:path[depth]===id});
+  });
  }
  return items;
 }
@@ -162,30 +176,80 @@ function nodeGraphic(n){
  const item=node(n.id),kind=n.depth===0?"root":n.onPath?"active":"ghost";
  const g=el("g",{class:"node "+kind,transform:"translate("+n.x+","+n.y+")",role:"button",tabindex:"0","aria-label":item.label+" "+item.sub});
  g.appendChild(el("rect",{class:"shape",x:-W/2,y:-H/2,width:W,height:H}));
- if(item.pieces){
-  const partW=42;
-  item.pieces.forEach((part,i)=>{
-   const px=(i-(item.pieces.length-1)/2)*49-partW/2;
-   g.appendChild(el("rect",{class:"piece",x:px,y:-25,width:partW,height:35}));
-   g.appendChild(el("text",{class:"mainlabel",x:px+partW/2,y:0,"text-anchor":"middle"},part));
-  });
+ // 初始整个动词是一块；进入活用后才在同一节点内部划分词干和词尾。
+ const verbEnding=mode==="kaku"&&["ka","ki","ke","ko"].includes(n.id)&&n.onPath;
+ const parts=n.id==="kaku"&&depthShown>0?["書","く"]:
+   verbEnding?["書",item.label]:
+   item.pieces&&n.onPath&&depthShown>n.depth?item.pieces:null;
+ if(parts&&parts.length===2){
+  g.appendChild(el("rect",{class:"segment-bg",x:-53,y:-25,width:106,height:36}));
+  g.appendChild(el("line",{class:"segment-divider",x1:0,y1:-25,x2:0,y2:11}));
+  parts.forEach((part,i)=>g.appendChild(el("text",{
+   class:"mainlabel",x:i===0?-26:26,y:0,"text-anchor":"middle"
+  },part)));
  } else g.appendChild(el("text",{class:"mainlabel",x:0,y:0,"text-anchor":"middle"},item.label));
  g.appendChild(el("text",{class:"sublabel",x:0,y:26,"text-anchor":"middle"},item.sub));
- const info=el("g",{role:"button",tabindex:"0","aria-label":"查看"+item.label+"说明"});
+ const info=el("g",{class:"info-hit",role:"button",tabindex:"0","aria-label":"查看"+item.label+"说明"});
  info.appendChild(el("circle",{class:"information",cx:69,cy:-30,r:9}));
  info.appendChild(el("text",{class:"infoletter",x:69,y:-26,"text-anchor":"middle"},"i"));
  info.addEventListener("click",e=>{e.stopPropagation();showInfo(n.id)});
  info.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();e.stopPropagation();showInfo(n.id)}});
  g.appendChild(info);
- g.addEventListener("click",()=>clickNode(n.id,n.depth));
+ g.addEventListener("pointerdown",event=>{
+  if(event.target.closest?.(".info-hit"))return;
+  if(event.pointerType==="mouse"&&event.button!==0)return;
+  const box=svg.getBoundingClientRect(),vb=svg.viewBox.baseVal;
+  const scale=Math.min(box.width/vb.width,box.height/vb.height)||1;
+  const start=positions[mode].get(n.id)||{x:0,y:0};
+  dragging={id:n.id,pointerId:event.pointerId,x:event.clientX,y:event.clientY,
+    initialX:start.x,initialY:start.y,scale,moved:false};
+  suppressClick=null;
+  g.setPointerCapture?.(event.pointerId);
+ });
+ g.addEventListener("pointermove",event=>{
+  if(!dragging||dragging.id!==n.id||dragging.pointerId!==event.pointerId)return;
+  const dx=(event.clientX-dragging.x)/dragging.scale;
+  const dy=(event.clientY-dragging.y)/dragging.scale;
+  if(!dragging.moved&&Math.hypot(event.clientX-dragging.x,event.clientY-dragging.y)<5)return;
+  dragging.moved=true;
+  positions[mode].set(n.id,{x:dragging.initialX+dx,y:dragging.initialY+dy});
+  g.setAttribute("class","node "+kind+" dragging");
+  updateGeometry();
+ });
+ function finishDrag(event){
+  if(!dragging||dragging.id!==n.id||dragging.pointerId!==event.pointerId)return;
+  suppressClick=dragging.moved?n.id:null;
+  dragging=null;
+  g.setAttribute("class","node "+kind);
+ }
+ g.addEventListener("pointerup",finishDrag);
+ g.addEventListener("pointercancel",event=>{
+  if(dragging&&dragging.pointerId===event.pointerId){
+   suppressClick=null;dragging=null;g.setAttribute("class","node "+kind);
+  }
+ });
+ g.addEventListener("click",()=>{
+  if(suppressClick===n.id){suppressClick=null;return}
+  clickNode(n.id,n.depth);
+ });
  g.addEventListener("keydown",e=>{if(e.target===g&&(e.key==="Enter"||e.key===" ")){e.preventDefault();clickNode(n.id,n.depth)}});
  return g;
 }
-function edge(parent,child){
+function edgePath(parent,child){
  const forward=data().direction===1;
  const x1=forward?parent.x+W/2:child.x+W/2,x2=forward?child.x-W/2:parent.x-W/2;
  const y1=forward?parent.y:child.y,y2=forward?child.y:parent.y,mid=(x1+x2)/2;
- return el("path",{class:"edge"+(child.onPath?" solid":""),d:"M "+x1+" "+y1+" C "+mid+" "+y1+", "+mid+" "+y2+", "+x2+" "+y2});
+ return "M "+x1+" "+y1+" C "+mid+" "+y1+", "+mid+" "+y2+", "+x2+" "+y2;
+}
+function edge(parent,child){
+ return el("path",{class:"edge"+(child.onPath?" solid":""),d:edgePath(parent,child)});
+}
+function updateGeometry(){
+ const items=layout(),lookup=new Map(items.map(item=>[item.id,item]));
+ items.forEach(item=>{
+  visualNodes.get(item.id)?.setAttribute("transform","translate("+item.x+","+item.y+")");
+  if(item.parent)visualEdges.get(item.id)?.setAttribute("d",edgePath(lookup.get(item.parent),item));
+ });
 }
 function render(){
  const items=layout(),lookup=new Map(items.map(a=>[a.id,a]));
@@ -196,8 +260,19 @@ function render(){
  svg.setAttribute("viewBox",[centerX-width/2,centerY-height/2,width,height].join(" "));
  svg.style.width=Math.max(900,width)+"px";
  svg.replaceChildren();
- items.forEach(item=>{if(item.parent)svg.appendChild(edge(lookup.get(item.parent),item))});
- items.forEach(item=>svg.appendChild(nodeGraphic(item)));
+ visualNodes=new Map();visualEdges=new Map();
+ items.forEach(item=>{
+  if(item.parent){
+   const line=edge(lookup.get(item.parent),item);
+   visualEdges.set(item.id,line);
+   svg.appendChild(line);
+  }
+ });
+ items.forEach(item=>{
+  const graphics=nodeGraphic(item);
+  visualNodes.set(item.id,graphics);
+  svg.appendChild(graphics);
+ });
  const id=path[Math.min(depthShown,path.length-1)];
  const current=node(id);
  document.getElementById("surface").textContent=current.form||(mode==="mai"?"まい · "+current.label:"書く");
